@@ -21,6 +21,7 @@ PM이 관리하는 기획 문서 모음입니다. **원본(SSOT)은 PM의 로컬
 | [planning/03-flow.md](planning/03-flow.md) | 화면·사용자 플로우 |
 | [planning/04-presentation.md](planning/04-presentation.md) | 발표 구성·협업 로그 |
 | [meetings/05-meeting-01.md](meetings/05-meeting-01.md) | 1차 회의록 |
+| [meetings/05-meeting-01-transcript.txt](meetings/05-meeting-01-transcript.txt) | 1차 회의 녹취 원문 (16분, 자동 전사 그대로) |
 
 ## 직무별 가이드
 
