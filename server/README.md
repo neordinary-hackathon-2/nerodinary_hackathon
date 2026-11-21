@@ -177,9 +177,16 @@ type _Check = AssertNoMismatch<EntityMismatch<typeof contents.$inferSelect, Cont
 `NODE_ENV`에 따라 `.env.local` / `.env.production` 을 읽는다. 항목은 [.env.example](.env.example) 참고.
 필수 값이 없으면 서버가 부팅 단계에서 실패한다. 실제 값이 든 `.env*` 는 커밋하지 않는다.
 
+운영의 `.env.production`은 사람이 쓰지 않는다. GitHub Secrets/Variables에 등록한 값으로 배포할 때마다 새로 만들어진다([deploy/render-env.sh](deploy/render-env.sh), [결정 0004](docs/decisions/0004-production-env-from-github-secrets.md)).
+
+- 레포가 public이라 `CORS_ORIGINS`만 Variable이고 나머지(DB 접속 정보, 토큰, 인스턴스 주소)는 전부 Secret이다. 목록은 `deploy.yml` 상단 주석 참고.
+- 값 변경: GitHub → Settings → Secrets and variables → Actions에서 고친 뒤 Actions 탭에서 `Server Deploy`를 수동 실행한다. 값만 바꿔서는 배포가 돌지 않는다.
+- 변수 추가: `config/env.validation.ts`, `.env.example`, `deploy/render-env.sh`, `deploy.yml`의 env 블록을 같은 PR에서 고치고, **머지 전에** GitHub에 값을 등록한다.
+- 인스턴스에서 파일을 직접 고치면 다음 배포 때 덮어써진다.
+
 ## 배포
 
-`main`에 `server/` 변경 푸시 → GitHub Actions: 린트·빌드·테스트 → Lightsail 인스턴스로 전송 → pm2 reload → 헬스체크(DB 연결 포함).
+`main`에 `server/` 변경 푸시 → GitHub Actions: 린트·빌드·테스트 → 운영 env 쓰기 → Lightsail 인스턴스로 전송 → pm2 reload → 헬스체크(DB 연결 포함).
 
 ```
 사용자 ─HTTPS(443)─▶ Lightsail 인스턴스 [Caddy → NestJS :3000] ─3306(VPC 피어링)─▶ RDS MySQL (퍼블릭 액세스 없음)

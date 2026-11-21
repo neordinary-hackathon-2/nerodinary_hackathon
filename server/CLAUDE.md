@@ -98,6 +98,6 @@ PR 전에는 CI와 같은 순서로 확인한다: `lint` → `db:generate`(변�
 - 브랜치: `main`이 아니라 **에픽에서 딴다.** `epic/server/<작업>` ← `feat|fix|chore|refact/server/<작업>`. PR 대상도 그 에픽이다.
 - **`main`에 `server/` 또는 `shared/` 변경이 합쳐지면 바로 운영에 배포된다.** 에픽은 배포해도 되는 상태일 때만 합친다.
 - 커밋: `<type>: <한국어 설명>` (Conventional Commits, 헤더 100자 이내).
-- 실제 값이 든 `.env*`는 커밋하지 않는다. 환경변수를 추가하면 `config/env.validation.ts`와 `.env.example`도 같이 고친다.
+- 실제 값이 든 `.env*`는 커밋하지 않는다. 환경변수를 추가하면 `config/env.validation.ts`와 `.env.example`도 같이 고친다. 운영에 필요한 값이면 `deploy/render-env.sh`와 `deploy.yml`의 env 블록에도 넣고, 머지 전에 GitHub Secrets/Variables 등록을 사용자에게 요청한다(운영 `.env.production`은 배포가 만든다).
 - 작업 중 만드는 문서는 `server/docs/`에 둔다. 설계 결정은 `server/docs/decisions/NNNN-<제목>.md`.
 - 인프라(Lightsail, RDS, Caddy, `deploy/`, `.github/workflows/`)는 요청이 있을 때만 건드린다.
