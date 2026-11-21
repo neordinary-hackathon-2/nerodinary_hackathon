@@ -1,14 +1,8 @@
 import type {Metadata} from 'next';
 import {Press_Start_2P, Silkscreen} from 'next/font/google';
-import localFont from 'next/font/local';
 
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './globals.css';
-
-const pretendard = localFont({
-  src: './fonts/PretendardVariable.woff2',
-  variable: '--font-next-pretendard',
-  weight: '45 920',
-});
 
 const silkscreen = Silkscreen({
   variable: '--font-next-silkscreen',
@@ -31,7 +25,7 @@ const RootLayout = ({children}: LayoutProps<'/'>) => {
   return (
     <html
       lang="en"
-      className={`${pretendard.variable} ${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
+      className={`${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
