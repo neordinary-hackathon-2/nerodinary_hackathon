@@ -61,7 +61,7 @@ const ChannelGuide = ({
         )}
       </div>
       <p className="w-full text-center text-[12px] leading-[1.2] font-semibold text-olive-500">
-        채널 키 또는 숫자 키(0~9)로 이동할 수 있어요.
+        채널 키 또는 숫자 키(1~9)로 이동할 수 있어요.
       </p>
     </section>
   );
