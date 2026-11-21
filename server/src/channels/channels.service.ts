@@ -14,11 +14,10 @@ export class ChannelsService {
     const channelRows = await this.db
       .select({
         id: channels.id,
-        channelCode: channels.code,
-        displayOrder: channels.displayOrder,
+        channelNumber: channels.channelNumber,
       })
       .from(channels)
-      .orderBy(asc(channels.displayOrder));
+      .orderBy(asc(channels.channelNumber));
 
     const channelResults = await Promise.all(
       channelRows.map(async (channel) => {
@@ -35,8 +34,7 @@ export class ChannelsService {
           .limit(10);
 
         return {
-          channelCode: channel.channelCode,
-          displayOrder: channel.displayOrder,
+          channelNumber: channel.channelNumber,
           videos: channelVideos,
         };
       }),
