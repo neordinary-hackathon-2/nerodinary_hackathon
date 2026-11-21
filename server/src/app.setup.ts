@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, StandardSchemaValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/exception/global-exception.filter.js';
 import { ValidationException } from './common/exception/validation.exception.js';
 import { ResponseInterceptor } from './common/response/response.interceptor.js';
@@ -13,11 +13,10 @@ export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix(GLOBAL_PREFIX);
 
   app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // DTO에 없는 필드는 제거
-      forbidNonWhitelisted: true, // DTO에 없는 필드가 오면 400
-      transform: true, // 쿼리스트링/파라미터를 DTO 타입으로 변환
-      exceptionFactory: (errors) => new ValidationException(errors),
+    // @Body({ schema }), @Query({ schema }), @Param('id', { schema }) 에 붙인 zod 스키마로 검증하고,
+    // 스키마가 변환한 값(z.coerce 등)을 핸들러에 넘긴다.
+    new StandardSchemaValidationPipe({
+      exceptionFactory: (issues) => new ValidationException(issues),
     }),
   );
   app.useGlobalInterceptors(new ResponseInterceptor());

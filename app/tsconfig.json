@@ -4,7 +4,9 @@
     "strict": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@/assets/*": ["./assets/*"]
+      "@/assets/*": ["./assets/*"],
+      "@shared": ["../shared/index.ts"],
+      "zod": ["./node_modules/zod/index.d.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

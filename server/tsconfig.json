@@ -13,11 +13,14 @@
     "target": "ES2024",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node"],
+    "paths": {
+      "zod": ["./node_modules/zod/index.d.ts"]
+    }
   }
 }
