@@ -58,7 +58,7 @@ export class YoutubeSyncService {
   /**
    * 한 채널의 영상을 저장·갱신하고, 재생할 수 없게 된 영상을 지운다.
    * 저장 조건(공개·임베드·길이)은 수집기가 걸렀더라도 여기서 다시 확인한다.
-   * 그 뒤 채널당 유지 개수를 넘는 만큼, 저장된 지 오래된 영상부터 지운다.
+   * 그 뒤 채널당 유지 개수를 넘는 만큼, 마지막으로 재확인한 지 오래된 영상부터 지운다.
    */
   async sync(request: YoutubeSyncRequestDto): Promise<YoutubeSyncResultDto> {
     const [channel] = await this.db
@@ -129,12 +129,17 @@ export class YoutubeSyncService {
       if (excess <= 0) {
         return 0;
       }
-      // createdAt 은 초 단위라 한 요청으로 들어온 영상끼리 같다. id 로 순서를 가른다.
+      // 재확인한 지 오래된 순으로 정리한다. lastRefreshedAt 이 없는 행은 먼저 지우고,
+      // 시각이 같으면 createdAt 과 id 로 순서를 결정한다.
       const oldest = await tx
         .select({ id: videos.id })
         .from(videos)
         .where(eq(videos.appChannelId, channel.id))
-        .orderBy(asc(videos.createdAt), asc(videos.id))
+        .orderBy(
+          asc(videos.lastRefreshedAt),
+          asc(videos.createdAt),
+          asc(videos.id),
+        )
         .limit(excess);
       await tx.delete(videos).where(
         inArray(
