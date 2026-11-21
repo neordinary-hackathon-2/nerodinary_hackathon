@@ -4,6 +4,7 @@ import type {
   SyncVideo,
   VideoDetail,
 } from './collector.types.js';
+import { describeError } from './retry.js';
 import type { CollectorServer } from './sync.client.js';
 import { isEligible, isStorable } from './video-filter.js';
 import {
@@ -35,6 +36,12 @@ export interface CollectorOptions {
   searchCallBudget: number;
   /** 한 채널이 한 번 실행에서 쓸 수 있는 search.list 호출 수(페이지 넘김 포함). */
   searchCallsPerChannel: number;
+  /**
+   * 실행 시작부터 이 시간(ms)이 지나면 새 검색과 검색 재시도를 멈춘다.
+   * YouTube 가 응답하지 않는 날에도 워크플로 제한(15분) 안에 동기화까지 끝내기 위한 상한.
+   * 없으면 시간으로 멈추지 않는다.
+   */
+  searchTimeLimitMs?: number;
   limits: DurationLimits;
   /** true 면 YouTube 는 실제로 호출하되 서버에는 아무것도 보내지 않는다. */
   dryRun: boolean;
@@ -46,6 +53,8 @@ export interface CollectorDeps {
   youtube: YoutubeClient;
   server: CollectorServer;
   log?: (message: string) => void;
+  /** 현재 시각(ms). 테스트에서 시간을 흘려보내려고 둔다. 기본은 Date.now. */
+  clock?: () => number;
 }
 
 export interface ChannelReport {
@@ -76,10 +85,11 @@ export interface CollectorReport {
   channels: ChannelReport[];
   searchCalls: number;
   /**
-   * done: 더 찾을 것이 없음, budget: 실행당 상한 도달, quota: YouTube 일일 한도 초과,
+   * done: 더 찾을 것이 없음, budget: 실행당 상한 도달, time: 검색 시간 상한 도달,
+   * quota: YouTube 일일 한도 초과(429 포함),
    * rejected: YouTube 가 요청을 거부함(잘못된 키 등). 이 경우만 실패로 본다.
    */
-  stoppedBy: 'done' | 'budget' | 'quota' | 'rejected';
+  stoppedBy: 'done' | 'budget' | 'time' | 'quota' | 'rejected';
   /** 재검증 호출이 실패해 상태를 확인하지 못한 영상 수. */
   reverifyFailed: number;
   failed: boolean;
@@ -123,10 +133,6 @@ function hasThumbnail(
   return video.thumbnailUrl !== null;
 }
 
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /**
  * 한 번의 수집 실행.
  *
@@ -143,6 +149,11 @@ export async function runCollector(
 ): Promise<CollectorReport> {
   const { youtube, server } = deps;
   const log = deps.log ?? (() => {});
+  const clock = deps.clock ?? Date.now;
+  const startedAt = clock();
+  const outOfTime = () =>
+    options.searchTimeLimitMs !== undefined &&
+    clock() - startedAt >= options.searchTimeLimitMs;
 
   const allChannels = await server.fetchChannels();
   const channels =
@@ -265,6 +276,11 @@ export async function runCollector(
         stoppedBy = 'budget';
         break search;
       }
+      if (outOfTime()) {
+        stoppedBy = 'time';
+        log('검색 시간 상한에 닿아 검색을 멈추고 동기화로 넘어갑니다.');
+        break search;
+      }
       const kind = nextQueue(plan);
       if (kind === null) {
         continue;
@@ -280,22 +296,42 @@ export async function runCollector(
       plan.report.searchCalls += 1;
       let page;
       try {
-        page = await youtube.searchVideoIds(query);
+        page = await youtube.searchVideoIds(query, {
+          // 실패한 호출도 할당량을 썼을 수 있으므로 재시도도 한 번의 검색으로 센다.
+          // 전체·채널별 상한이나 시간 상한에 닿으면 재시도하지 않는다.
+          beforeRetry: (info) => {
+            if (
+              searchCalls >= options.searchCallBudget ||
+              plan.report.searchCalls >= options.searchCallsPerChannel ||
+              outOfTime()
+            ) {
+              return false;
+            }
+            searchCalls += 1;
+            plan.report.searchCalls += 1;
+            log(
+              `채널 ${plan.report.channelNumber} 검색 재시도 ${info.attempt + 1}/${info.attempts} ("${query.query}", ${query.duration}): ${describeError(info.error)}`,
+            );
+            return true;
+          },
+        });
       } catch (error) {
         if (isQuotaError(error)) {
           stoppedBy = 'quota';
-          log(`YouTube 할당량 초과로 검색을 중단합니다: ${describe(error)}`);
+          log(
+            `YouTube 할당량 초과로 검색을 중단합니다: ${describeError(error)}`,
+          );
           break search;
         }
         if (error instanceof YoutubeApiError && error.status < 500) {
           // 잘못된 키·권한 문제는 다시 불러도 같다. 호출 수만 쓰므로 바로 멈춘다.
           stoppedBy = 'rejected';
-          log(`YouTube 가 검색 요청을 거부했습니다: ${describe(error)}`);
+          log(`YouTube 가 검색 요청을 거부했습니다: ${describeError(error)}`);
           break search;
         }
         // 일시적인 오류는 이 검색어·구간만 버리고 계속한다.
         log(
-          `채널 ${plan.report.channelNumber} 검색 실패 ("${query.query}", ${query.duration}): ${describe(error)}`,
+          `채널 ${plan.report.channelNumber} 검색 실패 ("${query.query}", ${query.duration}): ${describeError(error)}`,
         );
         continue;
       }
@@ -376,8 +412,10 @@ export async function runCollector(
       // 예상값 대신 서버가 실제로 지운 수를 남긴다.
       plan.report.evicted = evicted;
     } catch (error) {
-      plan.report.syncError = describe(error);
-      log(`채널 ${plan.report.channelNumber} 동기화 실패: ${describe(error)}`);
+      plan.report.syncError = describeError(error);
+      log(
+        `채널 ${plan.report.channelNumber} 동기화 실패: ${describeError(error)}`,
+      );
     }
   }
 

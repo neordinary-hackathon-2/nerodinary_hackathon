@@ -1,8 +1,10 @@
 import type { YoutubeSyncRequestDto } from '../youtube/youtube-internal.schema.js';
 import { runCollector, type CollectorOptions } from './collector.js';
 import type { SeedChannel, VideoDetail } from './collector.types.js';
+import { withRetry } from './retry.js';
 import type { CollectorServer } from './sync.client.js';
 import {
+  isRetryableYoutubeError,
   YoutubeApiError,
   type SearchPage,
   type SearchQuery,
@@ -56,17 +58,39 @@ function fakeYoutube(config: {
   pages?: Record<string, SearchPage>;
   failLookupFor?: string[];
   searchError?: Error;
+  /** 검색마다 처음 n번은 503 으로 실패한다. 실제 클라이언트처럼 최대 3번 시도한다. */
+  transientSearchFailures?: number;
 }) {
   const catalog = new Map(
     (config.catalog ?? []).map((v) => [v.youtubeVideoId, v]),
   );
   const searches: SearchQuery[] = [];
+  /** 재시도를 포함한 실제 검색 호출 수. */
+  const attempts = { count: 0 };
   const client: YoutubeClient = {
-    searchVideoIds(query) {
+    async searchVideoIds(query, hooks) {
       searches.push(query);
       if (config.searchError) {
         return Promise.reject(config.searchError);
       }
+      let failuresLeft = config.transientSearchFailures ?? 0;
+      await withRetry(
+        () => {
+          attempts.count += 1;
+          if (failuresLeft > 0) {
+            failuresLeft -= 1;
+            return Promise.reject(
+              new YoutubeApiError(503, 'backendError', '일시 오류'),
+            );
+          }
+          return Promise.resolve();
+        },
+        {
+          isRetryable: isRetryableYoutubeError,
+          beforeRetry: hooks?.beforeRetry,
+          sleep: () => Promise.resolve(),
+        },
+      );
       // 기간 조건이 붙은 검색은 키 앞에 "fresh:" 를 붙여 구분한다.
       const key = `${query.publishedAfter ? 'fresh:' : ''}${query.query}|${query.duration}|${query.pageToken ?? ''}`;
       return Promise.resolve(
@@ -86,7 +110,7 @@ function fakeYoutube(config: {
       return Promise.resolve(lookup);
     },
   };
-  return { client, searches };
+  return { client, searches, attempts };
 }
 
 function fakeServer(
@@ -454,6 +478,26 @@ describe('runCollector', () => {
     expect(synced[0].removedVideoIds).toEqual(['gone']);
   });
 
+  it('검색 일일 한도 초과(429)는 실패가 아니라 할당량 중단으로 보고한다', async () => {
+    const youtube = fakeYoutube({
+      searchError: new YoutubeApiError(
+        429,
+        'rateLimitExceeded',
+        "Quota exceeded for quota metric 'Search Queries'",
+      ),
+    });
+    const { server } = fakeServer([channel({ seedKeywords: ['가', '나'] })]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      options,
+    );
+
+    expect(youtube.searches).toHaveLength(1);
+    expect(report.stoppedBy).toBe('quota');
+    expect(report.failed).toBe(false);
+  });
+
   it('할당량 외의 일시 오류는 해당 검색만 건너뛰고 계속한다', async () => {
     const youtube = fakeYoutube({
       searchError: new YoutubeApiError(500, 'backendError', '일시 오류'),
@@ -467,6 +511,92 @@ describe('runCollector', () => {
 
     expect(youtube.searches).toHaveLength(4);
     expect(report.stoppedBy).toBe('done');
+  });
+
+  it('검색 재시도도 한 번의 검색으로 세어 예산에서 차감한다', async () => {
+    const youtube = fakeYoutube({ transientSearchFailures: 1 });
+    const logs: string[] = [];
+    const { server } = fakeServer([channel({ seedKeywords: ['가'] })]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server, log: (m) => logs.push(m) },
+      options,
+    );
+
+    // 검색어 1개 × 길이 구간 2개, 각각 1번 실패 후 성공 → 4회.
+    expect(report.searchCalls).toBe(4);
+    expect(report.channels[0].searchCalls).toBe(4);
+    expect(report.stoppedBy).toBe('done');
+    expect(logs.filter((m) => m.includes('검색 재시도 2/3'))).toHaveLength(2);
+  });
+
+  it('예산이 남지 않으면 검색을 다시 시도하지 않는다', async () => {
+    const youtube = fakeYoutube({ transientSearchFailures: 1 });
+    const { server } = fakeServer([channel({ seedKeywords: ['가'] })]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      { ...options, searchCallBudget: 1 },
+    );
+
+    expect(youtube.attempts.count).toBe(1);
+    expect(report.searchCalls).toBe(1);
+    expect(report.stoppedBy).toBe('budget');
+  });
+
+  it('채널별 상한에 닿으면 검색을 다시 시도하지 않는다', async () => {
+    const youtube = fakeYoutube({ transientSearchFailures: 1 });
+    const { server } = fakeServer([channel({ seedKeywords: ['가'] })]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      { ...options, searchCallsPerChannel: 1 },
+    );
+
+    expect(youtube.attempts.count).toBe(1);
+    expect(report.channels[0].searchCalls).toBe(1);
+  });
+
+  it('검색 시간 상한이 지나면 검색을 멈추고 실패로 보지 않는다', async () => {
+    const youtube = fakeYoutube({ catalog: [video('a')] });
+    const { server, synced } = fakeServer([
+      channel({ storedVideoIds: ['a', 'gone'] }),
+    ]);
+    // 재검증까지 끝난 뒤 시간이 이미 상한을 넘었다고 본다.
+    const times = [0];
+    const clock = () => times.shift() ?? 10_000;
+
+    const report = await runCollector(
+      { youtube: youtube.client, server, clock },
+      { ...options, searchTimeLimitMs: 5_000 },
+    );
+
+    expect(youtube.searches).toHaveLength(0);
+    expect(report.stoppedBy).toBe('time');
+    expect(report.failed).toBe(false);
+    // 검색을 멈춰도 재검증 결과는 동기화한다.
+    expect(synced[0].removedVideoIds).toEqual(['gone']);
+  });
+
+  it('검색 중 시간 상한이 지나면 재시도하지 않는다', async () => {
+    const youtube = fakeYoutube({ transientSearchFailures: 1 });
+    let now = 0;
+    const client: YoutubeClient = {
+      ...youtube.client,
+      searchVideoIds(query, hooks) {
+        now = 10_000; // 첫 검색이 오래 걸렸다.
+        return youtube.client.searchVideoIds(query, hooks);
+      },
+    };
+    const { server } = fakeServer([channel({ seedKeywords: ['가'] })]);
+
+    const report = await runCollector(
+      { youtube: client, server, clock: () => now },
+      { ...options, searchTimeLimitMs: 5_000 },
+    );
+
+    expect(youtube.attempts.count).toBe(1);
+    expect(report.stoppedBy).toBe('time');
   });
 
   it('YouTube 가 요청을 거부하면(잘못된 키 등) 바로 멈추고 실패로 보고한다', async () => {
