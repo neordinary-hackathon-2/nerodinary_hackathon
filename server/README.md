@@ -47,6 +47,17 @@ curl https://54-116-233-6.sslip.io/api/health
 - **CORS**: 허용 오리진은 서버의 `CORS_ORIGINS`로 정한다(쉼표 구분). 현재는 `*`(모든 오리진 허용)로 열려 있어 Vercel 미리보기·로컬에서 바로 호출된다. 쿠키 기반 인증은 켜져 있지 않으므로(`credentials` 미사용) 인증은 헤더 토큰 방식으로 보낸다. Vercel 운영 주소가 확정되면 그 주소로 좁힌다.
 - IP가 바뀌면(해커톤 장소 이동 등) 도메인도 `<새-IP를-하이픈으로>.sslip.io`로 바뀐다. 그때 FE 베이스 URL도 함께 교체한다.
 
+## YouTube 영상 수집 기준
+
+수집기(`src/youtube-collector/`)가 채널별 `seedKeywords`로 YouTube `search.list`를 호출해 채널당 영상을 채운다.
+
+- **정렬**: `order`를 지정하지 않으므로 YouTube 기본값인 관련도순(`relevance`)이다. 관련도 산정 방식은 YouTube가 공개하지 않는다. API 키 호출이라 개인화는 없다.
+- **검색 조건**: `type=video`, `regionCode=KR`, `relevanceLanguage=ko`(한국어 우선, 배제는 아님), `videoEmbeddable=true`, `videoSyndicated=true`, `videoDuration`은 `medium`·`long` 두 번.
+- **저장 조건**(수집기와 서버가 둘 다 확인): 공개(`public`) · 임베드 가능 · 썸네일 있음 · 길이 10분~2시간(`MIN_DURATION_SECONDS`/`MAX_DURATION_SECONDS`, 경계 포함).
+- **개수·교체**: 채널당 100개 유지(`TARGET_PER_CHANNEL`). 매 실행마다 최근 7일(`FRESH_WINDOW_DAYS`) 영상을 최대 10개(`ROTATE_PER_CHANNEL`) 새로 넣고, 모자라면 기간 없이 채운다. 넘는 만큼은 서버가 저장된 지 오래된 영상부터 지운다. 재생할 수 없게 된 기존 영상은 삭제한다.
+- **쿼터 상한**: 실행당 `search.list` 60회(`SEARCH_CALL_BUDGET`), 채널당 6회(`SEARCH_CALLS_PER_CHANNEL`).
+- 조회수·좋아요 같은 품질 필터는 없다. 자세한 배경은 [`docs/decisions/0003-youtube-collector.md`](docs/decisions/0003-youtube-collector.md), [`0005-youtube-daily-rotation.md`](docs/decisions/0005-youtube-daily-rotation.md).
+
 ## 구조
 
 ```
