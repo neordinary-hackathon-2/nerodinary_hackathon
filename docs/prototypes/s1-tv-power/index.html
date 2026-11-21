@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>밥송국 S1 - TV 전원</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="stage" id="stage">
+  <!-- 모바일 뷰 고정 390x844 (Figma S1 로딩) -->
+  <main class="frame" id="frame" data-state="off" aria-label="밥송국 S1">
+
+    <p class="clock">9:41</p>
+
+    <div class="badge" id="badge">
+      <span class="dot"></span>
+      <span class="badge-text" id="badgeText">OFF AIR</span>
+    </div>
+
+    <h1 class="logo">BAPSONGGUK</h1>
+
+    <!-- Pixel TV : 360x346 @ (15,110) -->
+    <section class="tv" aria-label="BAP-TV">
+      <div class="abs tv-leg" style="left:266px;top:322px;width:36px;height:18px"><img src="assets/tv-leg.svg" alt=""></div>
+      <div class="abs tv-leg" style="left:52px;top:322px;width:36px;height:18px"><img src="assets/tv-leg.svg" alt=""></div>
+      <img class="abs" style="left:0;top:0;width:354px;height:56px" src="assets/antenna.svg" alt="">
+
+      <div class="abs ball" style="left:109px;top:0">
+        <img src="assets/ball-outline.svg" alt=""><img src="assets/ball-fill-a.svg" alt=""><img src="assets/ball-hl.svg" alt="">
+      </div>
+      <div class="abs ball" style="left:229px;top:0">
+        <img src="assets/ball-outline.svg" alt=""><img src="assets/ball-fill-b.svg" alt=""><img src="assets/ball-hl.svg" alt="">
+      </div>
+      <img class="abs" style="left:157px;top:44px;width:40px;height:14px" src="assets/antenna-base.svg" alt="">
+
+      <div class="abs tv-body" style="left:0;top:56px;width:354px;height:268px"><img src="assets/tv-body.svg" alt=""></div>
+      <img class="abs" style="left:18px;top:74px;width:318px;height:184px" src="assets/bezel.svg" alt="">
+
+      <!-- 화면 영역 (28,84,298x164) -->
+      <div class="abs glass" id="glass" style="left:28px;top:84px;width:298px;height:164px"></div>
+      <div class="abs crt" id="crt" style="left:28px;top:84px;width:298px;height:164px">
+        <img class="abs" style="left:0;top:0;width:298px;height:164px" src="assets/screen.svg" alt="">
+
+        <img class="abs scan" style="left:10px;top:6px;width:278px;height:152px" src="assets/scanlines.svg" alt="">
+
+        <!-- 로딩: PLEASE WAIT -->
+        <div class="content loading" id="loadingView">
+          <div class="progress" id="progress">
+            <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <p class="wait">PLEASE WAIT</p>
+        </div>
+
+        <!-- 켜진 뒤: CH 0 컬러바 대기 화면 -->
+        <div class="content bars" id="barsView" aria-hidden="true">
+          <div class="bars-top"><i style="background:#d7d7d7"></i><i style="background:#dada00"></i><i style="background:#00e3e5"></i><i style="background:#00e100"></i><i style="background:#f900fb"></i><i style="background:#f80000"></i><i style="background:#0100f8"></i></div>
+          <div class="bars-mid"><i style="background:#0100f8"></i><i style="background:#1a1a1a"></i><i style="background:#f900fb"></i><i style="background:#1a1a1a"></i><i style="background:#00e3e5"></i><i style="background:#1a1a1a"></i><i style="background:#d7d7d7"></i></div>
+          <div class="bars-bot"><i style="background:#002d6d"></i><i style="background:#fff"></i><i style="background:#440092"></i><i style="background:#1a1a1a"></i><i style="background:#0d0d0d"></i><i style="background:#2a2a2a"></i></div>
+        </div>
+
+      </div>
+
+      <img class="abs" style="left:12px;top:266px;width:330px;height:8px" src="assets/dither.svg" alt="">
+
+      <div class="abs led"><span id="ledText">CH --</span></div>
+
+      <div class="abs speaker"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+      <div class="abs knob" style="left:255px;top:279px">
+        <img src="assets/knob-fill.svg" alt=""><img src="assets/knob-outline.svg" alt=""><img src="assets/knob-tick-a.svg" alt="">
+      </div>
+      <div class="abs knob" style="left:299px;top:279px">
+        <img src="assets/knob-fill.svg" alt=""><img src="assets/knob-outline.svg" alt=""><img src="assets/knob-tick-b.svg" alt="">
+      </div>
+      <p class="abs brand">BAP-TV</p>
+    </section>
+
+    <p class="hint" id="hint">전원 버튼을 눌러 TV를 켜세요</p>
+
+    <!-- Pixel Remote : 329.946x809.467 @ (center, 562) -->
+    <section class="remote" aria-label="리모컨">
+      <div class="r-body">
+        <img class="fill" src="assets/remote-body.svg" alt="">
+        <div class="r-inset"><img class="fill" src="assets/remote-vector.svg" alt=""></div>
+
+        <div class="keypad dim">
+          <div class="row"><b>1</b><b>2</b><b>3</b></div>
+          <div class="row"><b>4</b><b>5</b><b>6</b></div>
+          <div class="row"><b>7</b><b>8</b><b>9</b></div>
+          <div class="row"><b>*</b><b>0</b><b>#</b></div>
+        </div>
+
+        <button class="pwr pwr-main" type="button" aria-label="TV 전원" data-power>
+          <img src="assets/icon-power.svg" alt="">
+        </button>
+      </div>
+
+      <div class="r-head"><img class="fill" src="assets/header-band.svg" alt=""></div>
+      <div class="r-ir"></div>
+      <button class="pwr pwr-top" type="button" aria-label="TV 전원" data-power>
+        <img src="assets/icon-power-top.svg" alt="">
+      </button>
+      <span class="r-brand">BAP-TV</span>
+      <img class="r-dither" src="assets/remote-dither.svg" alt="">
+
+      <div class="rocker dim" style="left:43.13px">
+        <img class="ic" style="left:22px;top:30.8px;width:21.996px;height:21.996px" src="assets/icon-vol-top.svg" alt="">
+        <span class="lb" style="left:6.6px">VOL</span>
+        <img class="ic" style="left:22px;top:127.15px;width:21.996px;height:4.399px" src="assets/icon-vol-bottom.svg" alt="">
+      </div>
+      <div class="rocker dim" style="left:215.65px">
+        <img class="ic" style="left:15.01px;top:21.48px;width:39.593px;height:21.996px" src="assets/icon-ch-top.svg" alt="">
+        <span class="lb" style="left:15.01px">ch</span>
+        <img class="ic flip" style="left:15.01px;top:116.37px;width:39.593px;height:21.996px" src="assets/icon-ch-top.svg" alt="">
+      </div>
+
+      <p class="r-foot">BAPSONGGUK</p>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

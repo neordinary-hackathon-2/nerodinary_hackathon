@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="360" height="274" viewBox="0 0 360 274" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="TV &#235;&#179;&#184;&#236;&#178;&#180;" filter="url(#filter0_d_0_170)">
+<g clip-path="url(#clip0_0_170)">
+<path id="Vector" d="M12 0H342V6H348V12H354V256H348V262H342V268H12V262H6V256H0V12H6V6H12V0Z" fill="#2B2A1C"/>
+<path id="Vector_2" d="M16 4H338V10H344V16H350V252H344V258H338V264H16V258H10V252H4V16H10V10H16V4Z" fill="#FFEDC5"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_0_170" x="0" y="0" width="360" height="274" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="6" dy="6"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.168627 0 0 0 0 0.164706 0 0 0 0 0.109804 0 0 0 1 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_170"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_170" result="shape"/>
+</filter>
+<clipPath id="clip0_0_170">
+<rect width="354" height="268" fill="white"/>
+</clipPath>
+</defs>
+</svg>
