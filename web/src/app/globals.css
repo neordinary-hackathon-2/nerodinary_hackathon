@@ -69,6 +69,47 @@
       width: 150px;
     }
   }
+
+  /* TV 전원 켜기·끄기 CRT 연출 (docs/prototypes/s1-tv-power). 길이는 constants/tv.ts의 CRT_DURATION_MS와 같다. */
+  --animate-crt-on: crt-on 520ms steps(9) both;
+  --animate-crt-off: crt-off 520ms steps(9) both;
+
+  @keyframes crt-on {
+    0% {
+      transform: scale(0, 0.008);
+      filter: brightness(5);
+    }
+    45% {
+      transform: scale(1, 0.008);
+      filter: brightness(4);
+    }
+    100% {
+      transform: scale(1, 1);
+      filter: brightness(1);
+    }
+  }
+
+  @keyframes crt-off {
+    0% {
+      transform: scale(1, 1);
+      filter: brightness(1);
+      opacity: 1;
+    }
+    45% {
+      transform: scale(1, 0.008);
+      filter: brightness(4);
+    }
+    85% {
+      transform: scale(0.03, 0.008);
+      filter: brightness(6);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0, 0.008);
+      filter: brightness(6);
+      opacity: 0;
+    }
+  }
 }
 
 @theme inline {

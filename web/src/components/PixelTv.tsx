@@ -8,17 +8,17 @@ import type {TvScreen} from '@/constants/tv';
 interface PixelTvProps {
   screen: TvScreen;
   channelLabel: string;
+  /** 전원을 끄는 CRT 연출 중. 마지막 화면이 가로줄로 접히며 사라진다. */
+  isPoweringOff?: boolean;
   children?: ReactNode;
 }
 
-const SCREEN_BACKGROUND_CLASSES: Record<TvScreen, string> = {
-  off: 'bg-ink-900',
-  loading: '',
-  noSignal: '',
-  live: 'bg-ink-900',
-};
-
-const PixelTv = ({screen, channelLabel, children}: PixelTvProps) => {
+const PixelTv = ({
+  screen,
+  channelLabel,
+  isPoweringOff = false,
+  children,
+}: PixelTvProps) => {
   return (
     <div className="relative h-[346px] w-[362px]">
       <Image
@@ -77,12 +77,17 @@ const PixelTv = ({screen, channelLabel, children}: PixelTvProps) => {
         alt=""
         className="absolute top-[74px] left-[18px]"
       />
-      <div
-        className={`tv-screen-mask absolute top-[84px] left-[28px] h-[164px] w-[300px] overflow-hidden ${SCREEN_BACKGROUND_CLASSES[screen]}`}
-      >
-        {screen === 'loading' && <TvLoadingScreen />}
-        {screen === 'noSignal' && <ColorBars />}
-        {screen === 'live' && children}
+      {/* 꺼진 화면은 검은 유리. 켜지면 화면 내용이 가로줄에서 펼쳐지고(crt-on), 끌 때는 다시 접힌다(crt-off). */}
+      <div className="tv-screen-mask absolute top-[84px] left-[28px] h-[164px] w-[300px] overflow-hidden bg-ink-900">
+        {screen !== 'off' && (
+          <div
+            className={`absolute inset-0 motion-reduce:animate-none ${isPoweringOff ? 'animate-crt-off' : 'animate-crt-on'}`}
+          >
+            {screen === 'loading' && <TvLoadingScreen />}
+            {screen === 'noSignal' && <ColorBars />}
+            {screen === 'live' && children}
+          </div>
+        )}
       </div>
       <Image
         src="/tv/dither.svg"
