@@ -1,14 +1,18 @@
 import type {Metadata} from 'next';
-import {Geist, Geist_Mono} from 'next/font/google';
+import {Press_Start_2P, Silkscreen} from 'next/font/google';
+
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const silkscreen = Silkscreen({
+  variable: '--font-next-silkscreen',
+  weight: '700',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const pressStart2P = Press_Start_2P({
+  variable: '--font-next-press-start',
+  weight: '400',
   subsets: ['latin'],
 });
 
@@ -21,7 +25,7 @@ const RootLayout = ({children}: LayoutProps<'/'>) => {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
