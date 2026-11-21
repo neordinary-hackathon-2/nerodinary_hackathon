@@ -45,7 +45,7 @@ const HomeScreen = () => {
   );
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-mobile flex-col">
       <Header isLive={screen === 'live'} />
       <div className="mt-[45px] px-5">
         <PixelTv screen={screen} channelLabel={channelLabel}>
