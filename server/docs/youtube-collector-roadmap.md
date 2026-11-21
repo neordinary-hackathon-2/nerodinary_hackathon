@@ -16,9 +16,10 @@
 
 ## 2. 지금 상태 한눈에
 
-- 다음에 할 일: **[PR #35](https://github.com/neordinary-hackathon-2/nerodinary_hackathon/pull/35) 병합(사람) → 에픽 → main PR 올리기**
-- 작업 폴더의 브랜치: `feat/server/youtube-daily-rotation`. 커밋하지 않은 것은 이 문서 하나뿐이다.
-- `origin/epic/server/youtube-collector`는 `origin/main`보다 12커밋 앞서 있고 뒤처진 커밋은 없다.
+- 다음에 할 일: **이 문서를 에픽에 넣기 → 에픽 → main PR 올리기**
+- 작업 폴더의 브랜치: `feat/server/youtube-daily-rotation`. 작업 트리는 깨끗하다.
+- 이 문서는 PR #35가 병합된 뒤에 같은 브랜치에 커밋됐다. 그래서 에픽에는 아직 없다. 에픽으로 보내는 PR을 따로 올려야 한다.
+- `origin/epic/server/youtube-collector`는 `origin/main`보다 16커밋 앞서 있고 뒤처진 커밋은 없다. `git merge-tree`로 본 충돌은 없다.
 - 운영 서버에는 아직 내부 API가 없다. 에픽이 main에 들어가야 배포된다.
 
 ## 3. 로드맵
@@ -30,8 +31,8 @@
 | 1 | 수집기 추가, 내부 API 스키마를 서버로 이동 | ✅ | — | PR #22 병합 (에픽) |
 | 2 | 운영 환경변수를 GitHub Secrets/Variables에서 배포 시 주입 | ✅ | — | PR #26, #30 병합. 배포 성공, `/api/health`에서 서버와 DB 모두 UP 확인 |
 | 3 | 내부 수집 API 구현 (`seed-config`, `sync`, `X-Seed-Token`) | ✅ | — | PR #33 병합 (에픽). 단위 62개, e2e 27개 통과 |
-| 4 | 하루 10개 교체 (수집기 교체 큐, 서버 초과분 삭제) | 🔄 | 사람 | PR #35 열림, CI 통과. **리뷰와 병합 대기** |
-| 5 | 에픽 → main PR | ⬜ | 세션 | #4가 끝나면 올린다. 절차는 [4.1](#41-에픽--main-pr-5번) |
+| 4 | 하루 10개 교체 (수집기 교체 큐, 서버 초과분 삭제) | ✅ | — | PR #35 병합 (에픽, 병합 커밋 `01d05d1`). 단위 71개, e2e 27개 통과 |
+| 5 | 에픽 → main PR | ⬜ | 세션 | 바로 올릴 수 있다. 이 문서를 에픽에 먼저 넣을지는 사람이 정한다. 절차는 [4.1](#41-에픽--main-pr-5번) |
 | 6 | 배포 확인 | ⬜ | 세션 | #5 병합 후. 절차는 [4.2](#42-배포-확인-6번) |
 | 7 | `YOUTUBE_API_KEY` Secret, `SYNC_API_BASE_URL` Variable 등록 | ⬜ | 사람 | 값은 사람만 안다. 세션은 이름이 등록됐는지만 확인한다 |
 | 8 | 수집 워크플로 dry-run 1회 | ⬜ | 세션 | #7 후. 채널 1개로 먼저 돌려 검색 할당량 사용량을 본다 |
@@ -43,7 +44,7 @@
 
 ### 4.1 에픽 → main PR (5번)
 
-1. `git fetch origin` 후 #35가 병합됐는지 확인한다: `gh pr view 35 --json state`
+1. `git fetch origin` 후 에픽이 #35 병합 커밋(`01d05d1`)을 포함하는지 확인한다: `git merge-base --is-ancestor 01d05d1 origin/epic/server/youtube-collector`
 2. `origin/main`과 충돌이 없는지 본다: `git merge-tree --write-tree origin/main origin/epic/server/youtube-collector`
 3. PR을 올린다. base는 `main`, head는 `epic/server/youtube-collector`. Branch Policy CI가 `epic/*` → `main`만 허용한다.
 4. PR 본문에는 "병합하면 운영에 배포된다"와 아래 두 가지를 적는다.
@@ -91,22 +92,22 @@
 
 | 대상 | 내용 | 지워도 되는 시점 |
 | --- | --- | --- |
-| stash 2개 | `combined-before-split (internal api + rotation)`, `internal-api-wip` | #35 병합 후 |
-| 백업 ref 2개 | `refs/backup/youtube-combined`, `refs/backup/youtube-combined-on-main` | #35 병합 후 |
+| stash 2개 | `combined-before-split (internal api + rotation)`, `internal-api-wip` | 지금 (#35 병합됨) |
+| 백업 ref 2개 | `refs/backup/youtube-combined`, `refs/backup/youtube-combined-on-main` | 지금 (#35 병합됨) |
 | worktree | `.claude/worktrees/deploy-env-secrets` (브랜치 `chore/server/deploy-env-secrets`, PR #26으로 병합됨) | 지금 |
 | GitHub Variables | `AWS_REGION`, `LIGHTSAIL_HOST`, `LIGHTSAIL_INSTANCE_NAME`. 같은 이름의 Secret을 쓰게 바뀌어 더는 읽지 않는다 | 지금 |
 | `CORS_ORIGINS` | 지금 값은 `*`다. 웹 배포 주소가 정해지면 좁힌다 | 웹 주소 확정 후 |
 
 ## 7. 주의할 것
 
-- **0번 채널 기획이 움직이고 있다.** PR #31(병합됨)은 채널 0~9, 9 다음은 0으로 정했고 `server/CLAUDE.md`를 거기에 맞췄다. 열려 있는 PR #34는 0번을 이스터에그로 두고 순환을 1~9(9 다음은 1)로 바꾼다. #34가 병합되면 `server/CLAUDE.md`의 두 줄을 다시 고쳐야 한다. 수집기는 원래 1~9만 다루므로 코드 영향은 없다.
+- **0번 채널 기획이 움직이고 있다.** PR #31(병합됨)은 채널 0~9, 9 다음은 0으로 정했고 `server/CLAUDE.md`를 거기에 맞췄다. PR #34는 0번을 이스터에그로 두고 순환을 1~9(9 다음은 1)로 바꾼다. #34는 PR #32의 브랜치에 병합됐고, #32는 아직 main에 들어가지 않았다. #32가 main에 병합되면 `server/CLAUDE.md`의 두 줄을 다시 고쳐야 한다. 수집기는 원래 1~9만 다루므로 코드 영향은 없다.
 - 작업 브랜치는 `epic/*`에서 따고 PR도 에픽으로 보낸다. `feat/*` → `main`은 Branch Policy CI가 막는다.
 - 커밋 메시지와 PR 본문에 Claude 표기를 넣지 않는다. commit-msg 훅이 막는다.
 - 프로젝트 절대경로는 끝에 공백이 있다: `/Users/sychoi/Desktop/Project/neordinary_hackthon /`
 - 설치된 `gh`는 2.4.0이다. `gh pr edit`(Projects 오류), `gh variable`, `gh run list --branch`, `gh pr checks --watch`가 안 된다. PR 본문은 `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -F body=@파일`로 고치고, Variable 목록은 `gh api repos/<owner>/<repo>/actions/variables`로 본다.
 - Secret 값은 출력하지 않는다. 이름만 확인한다.
 - 같은 폴더를 쓰는 세션이 둘 더 있다("YouTube 데이터 seeding 함수", "수집기 영상 갱신 및 DB 관리"). 브랜치 분리 중에 폴더를 건드리지 말라고 전달된 상태 그대로다. 그 세션들의 작업은 PR #33, #35에 모두 들어갔으니 다시 깨울 필요는 없다.
-- 웹 쪽 PR #29와 발표 문서 PR #32, #34는 다른 사람 것이다. 건드리지 않는다.
+- 웹 쪽 PR #29와 발표 문서 PR #32는 다른 사람 것이다. 건드리지 않는다.
 
 ## 8. GitHub 설정 현황
 
