@@ -94,7 +94,7 @@ describe.skipIf(!dbAvailable)(
         timezone: 'Z',
       });
       db = drizzle(pool, { schema, mode: 'default', casing: DB_CASING });
-      // 운영과 같은 마이그레이션으로 스키마·시드 채널(0~9)을 만든다.
+      // 운영과 같은 마이그레이션으로 스키마·시드 채널(1~9)을 만든다.
       await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 
       syncService = new YoutubeSyncService(db, {
