@@ -21,6 +21,11 @@ export const ErrorCodes = {
     code: 'COMMON400_VALIDATION',
     message: '요청 값이 올바르지 않습니다.',
   },
+  UNAUTHORIZED: {
+    status: HttpStatus.UNAUTHORIZED,
+    code: 'COMMON401',
+    message: '인증 정보가 없거나 올바르지 않습니다.',
+  },
   NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,
     code: 'COMMON404',
@@ -35,6 +40,11 @@ export const ErrorCodes = {
     status: HttpStatus.CONFLICT,
     code: 'COMMON409',
     message: '이미 존재하는 리소스입니다.',
+  },
+  CHANNEL_NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    code: 'CHANNEL404',
+    message: '채널을 찾을 수 없습니다.',
   },
   INTERNAL_SERVER_ERROR: {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
