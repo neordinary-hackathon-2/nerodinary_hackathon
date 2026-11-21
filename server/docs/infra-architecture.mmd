@@ -8,8 +8,8 @@ flowchart LR
         direction LR
         dev["개발자<br/>git push (main)"]
         verify["verify<br/>lint · build · test"]
-        deploy["deploy<br/>빌드 → scp 전송 → pm2 reload<br/>→ /api/health 확인"]
-        secrets["GitHub Secrets<br/>AWS 키 · SSH 키"]
+        deploy["deploy<br/>빌드 → env 주입 · scp 전송 → pm2 reload<br/>→ /api/health 확인"]
+        secrets["GitHub Secrets<br/>AWS 키 · SSH 키 · 앱 비밀값"]
         iam["IAM: sychoi-deployer (배포 전용)<br/>배포 중에만 SSH 22 개방→회수"]
         dev --> verify --> deploy
         deploy -.-> secrets
@@ -55,5 +55,5 @@ flowchart LR
 %%  • DB 포트 외부 비노출 : RDS 퍼블릭 액세스 없음, 3306 사설 IP /32 만
 %%  • 불필요한 포트 비공개 : 80·443만 공개, 3000 비공개, SSH 22 한시 개방
 %%  • CI/CD 자동화 : GitHub Actions verify → deploy → health check
-%%  • 민감정보 관리 : .env.production(600), AWS·SSH 키는 GitHub Secrets
+%%  • 민감정보 관리 : 비밀값은 모두 GitHub Secrets, 배포 때 .env.production(600)으로 주입
 %% ─────────────────────────────────────────────

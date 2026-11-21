@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Lightsail 인스턴스에서 실행되는 배포 스크립트. (deploy.yml이 SSH로 호출)
-# 전제: ~/app/.env.production 이 서버에 미리 존재한다. (저장소에는 올리지 않는다)
+# 전제: ~/app/.env.production 은 deploy.yml이 이 스크립트 직전에 GitHub Secrets/Variables 로 써 둔다.
+#       (저장소에는 올리지 않고, 인스턴스에서 직접 고치지도 않는다)
 set -euo pipefail
 
 APP_DIR="$HOME/app"
@@ -8,7 +9,7 @@ PORT="${PORT:-3000}"
 cd "$APP_DIR"
 
 if [[ ! -f .env.production ]]; then
-  echo "ERROR: $APP_DIR/.env.production 이 없습니다." >&2
+  echo "ERROR: $APP_DIR/.env.production 이 없습니다. deploy.yml의 env 쓰기 단계를 확인하세요." >&2
   exit 1
 fi
 

@@ -7,7 +7,14 @@ name: Server Deploy
 # 필요한 GitHub 설정 (Settings → Secrets and variables → Actions)
 #   Secrets  : AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (Lightsail 포트 제어 권한만 가진 IAM 사용자)
 #              LIGHTSAIL_SSH_KEY                         (인스턴스 접속용 개인키 .pem 내용 전체)
+#              DB_PASSWORD, SEED_TOKEN                   (운영 앱 환경변수 중 비밀값)
 #   Variables: AWS_REGION, LIGHTSAIL_INSTANCE_NAME, LIGHTSAIL_HOST (고정 IP)
+#              CORS_ORIGINS, DB_HOST, DB_USERNAME, DB_DATABASE    (운영 앱 환경변수, 필수)
+#              DB_PORT, DB_LOGGING                                (선택. 기본 3306 / false)
+#
+# 운영 환경변수는 위 값으로 배포할 때마다 인스턴스의 ~/app/.env.production 을 새로 쓴다.
+# (server/deploy/render-env.sh) 인스턴스에서 파일을 직접 고치면 다음 배포 때 덮어써진다.
+# 값만 바꿨다면 Actions 탭에서 이 워크플로를 수동 실행(Run workflow)해야 반영된다.
 
 on:
   push:
@@ -73,7 +80,19 @@ jobs:
       - name: Upload and deploy
         env:
           SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          # 운영 앱 환경변수. 이 단계에만 노출한다. (deploy/render-env.sh 가 읽는다)
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USERNAME: ${{ vars.DB_USERNAME }}
+          DB_DATABASE: ${{ vars.DB_DATABASE }}
+          DB_LOGGING: ${{ vars.DB_LOGGING }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SEED_TOKEN: ${{ secrets.SEED_TOKEN }}
         run: |
+          # 필수 값이 비어 있으면 여기서 멈춘다. 인스턴스의 기존 파일은 건드리지 않는다.
+          ENV_CONTENT=$(bash deploy/render-env.sh)
+
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
@@ -84,6 +103,15 @@ jobs:
             if [ "$attempt" = 10 ]; then echo "SSH 접속 실패" >&2; exit 1; fi
             sleep 3
           done
+
+          # .env.production 을 표준입력으로 보낸다. (명령 인자·임시 파일에 값을 남기지 않는다)
+          # 권한 600으로 쓰고, 직전 파일은 .env.production.prev 로 남겨 되돌릴 수 있게 한다.
+          printf '%s\n' "$ENV_CONTENT" | ssh $SSH_OPTS "$TARGET" 'set -e
+            umask 077
+            mkdir -p ~/app
+            cat > ~/app/.env.production.new
+            if [ -f ~/app/.env.production ]; then cp ~/app/.env.production ~/app/.env.production.prev; fi
+            mv ~/app/.env.production.new ~/app/.env.production'
 
           scp $SSH_OPTS release.tgz "$TARGET:/tmp/release.tgz"
           ssh $SSH_OPTS "$TARGET" 'set -e
