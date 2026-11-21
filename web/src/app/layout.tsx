@@ -4,6 +4,8 @@ import {Press_Start_2P, Silkscreen} from 'next/font/google';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
+import Providers from '@/components/Providers';
+
 const silkscreen = Silkscreen({
   variable: '--font-next-silkscreen',
   weight: '700',
@@ -27,7 +29,9 @@ const RootLayout = ({children}: LayoutProps<'/'>) => {
       lang="en"
       className={`${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 };
