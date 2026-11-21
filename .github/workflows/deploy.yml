@@ -5,12 +5,13 @@ name: Server Deploy
 # SSH(22번) 포트는 평소에 닫아 두고, 배포하는 동안에만 이 러너의 IP에 한해 열었다가 닫는다.
 #
 # 필요한 GitHub 설정 (Settings → Secrets and variables → Actions)
+# 레포가 public 이라 Actions 로그도 공개된다. 로그에서 가려지도록 CORS_ORIGINS 만 빼고 전부 Secret 으로 둔다.
 #   Secrets  : AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (Lightsail 포트 제어 권한만 가진 IAM 사용자)
 #              LIGHTSAIL_SSH_KEY                         (인스턴스 접속용 개인키 .pem 내용 전체)
-#              DB_PASSWORD, SEED_TOKEN                   (운영 앱 환경변수 중 비밀값)
-#   Variables: AWS_REGION, LIGHTSAIL_INSTANCE_NAME, LIGHTSAIL_HOST (고정 IP)
-#              CORS_ORIGINS, DB_HOST, DB_USERNAME, DB_DATABASE    (운영 앱 환경변수, 필수)
-#              DB_PORT, DB_LOGGING                                (선택. 기본 3306 / false)
+#              AWS_REGION, LIGHTSAIL_INSTANCE_NAME, LIGHTSAIL_HOST (고정 IP)
+#              DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE, SEED_TOKEN  (운영 앱 환경변수, 필수)
+#              DB_PORT, DB_LOGGING                                         (선택. 기본 3306 / false)
+#   Variables: CORS_ORIGINS                              (운영 앱 환경변수, 필수. 프론트 주소라 공개 정보)
 #
 # 운영 환경변수는 위 값으로 배포할 때마다 인스턴스의 ~/app/.env.production 을 새로 쓴다.
 # (server/deploy/render-env.sh) 인스턴스에서 파일을 직접 고치면 다음 배포 때 덮어써진다.
@@ -42,8 +43,8 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     env:
-      INSTANCE: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
-      TARGET: ubuntu@${{ vars.LIGHTSAIL_HOST }}
+      INSTANCE: ${{ secrets.LIGHTSAIL_INSTANCE_NAME }}
+      TARGET: ubuntu@${{ secrets.LIGHTSAIL_HOST }}
       SSH_OPTS: -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10
     steps:
       - uses: actions/checkout@v4
@@ -68,7 +69,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Open SSH port for this runner
         run: |
@@ -82,12 +83,12 @@ jobs:
           SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           # 운영 앱 환경변수. 이 단계에만 노출한다. (deploy/render-env.sh 가 읽는다)
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
-          DB_HOST: ${{ vars.DB_HOST }}
-          DB_PORT: ${{ vars.DB_PORT }}
-          DB_USERNAME: ${{ vars.DB_USERNAME }}
-          DB_DATABASE: ${{ vars.DB_DATABASE }}
-          DB_LOGGING: ${{ vars.DB_LOGGING }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_LOGGING: ${{ secrets.DB_LOGGING }}
           SEED_TOKEN: ${{ secrets.SEED_TOKEN }}
         run: |
           # 필수 값이 비어 있으면 여기서 멈춘다. 인스턴스의 기존 파일은 건드리지 않는다.

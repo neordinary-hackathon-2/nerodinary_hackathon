@@ -22,16 +22,17 @@
 | 항목 | 값 | 근거 |
 | --- | --- | --- |
 | 저장 형태 | 항목별로 등록한다. 파일 전체를 Secret 하나에 넣지 않는다 | 아래 "검토한 대안" |
-| Secret | `DB_PASSWORD`, `SEED_TOKEN` | 노출되면 안 되는 값만 |
-| Variable (필수) | `CORS_ORIGINS`, `DB_HOST`, `DB_USERNAME`, `DB_DATABASE` | 비밀이 아닌 설정. UI에서 현재 값을 볼 수 있다 |
-| Variable (선택) | `DB_PORT`(기본 3306), `DB_LOGGING`(기본 false) | |
+| Secret (필수) | `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`, `SEED_TOKEN` | 레포가 public이라 Actions 로그도 공개된다. Secret은 로그에 찍혀도 `***`로 가려진다 |
+| Secret (선택) | `DB_PORT`(기본 3306), `DB_LOGGING`(기본 false) | 위와 같은 이유로 DB 관련 값은 모두 Secret에 둔다 |
+| Secret (배포 인프라) | `AWS_REGION`, `LIGHTSAIL_INSTANCE_NAME`, `LIGHTSAIL_HOST` | 기존에는 Variable이었다. 인스턴스 IP와 이름이 로그에 남지 않게 옮겼다 |
+| Variable | `CORS_ORIGINS` | 프론트 주소라 공개 정보다. UI에서 현재 값을 보고 고칠 일이 잦다 |
 | 고정값 | `NODE_ENV=production`, `PORT=3000`, `DB_MIGRATE_ON_START=true` | 운영에서 바뀔 일이 없어 `render-env.sh`에 적는다 |
 | 파일 생성 | `server/deploy/render-env.sh`가 러너에서 표준출력으로 만든다 | 로컬에서 그대로 실행해 검증할 수 있다 |
 | 빈 값 처리 | 필수 값이 하나라도 비면 SSH 접속 전에 배포를 중단한다 | 빈 값으로 기존 파일을 덮어써 서비스가 죽는 것을 막는다 |
 | 전송 | SSH 표준입력으로 보낸다 | 명령 인자, 러너 임시 파일, 릴리스 tarball에 값을 남기지 않는다 |
 | 인스턴스 파일 | `umask 077`로 쓴다(권한 600). 직전 파일은 `.env.production.prev`로 남긴다 | 되돌릴 수단. 배포 한 번 분량만 보관된다 |
 | 값 표기 | 작은따옴표로 감싼다. 작은따옴표나 줄바꿈이 든 값은 거부한다 | dotenv가 `#`, 공백, `$`를 그대로 읽는다 |
-| Secret 노출 범위 | `Upload and deploy` 단계의 `env`에만 넣는다. job 전체에 두지 않는다 | 서드파티 액션에 비밀값이 전달되지 않게 한다 |
+| Secret 노출 범위 | 앱 환경변수는 `Upload and deploy` 단계의 `env`에만 넣는다. job 전체에는 인스턴스 이름과 주소만 둔다 | 서드파티 액션에 DB 접속 정보와 토큰이 전달되지 않게 한다 |
 
 ## 운영 절차
 
@@ -51,6 +52,8 @@
 ## 감수하는 것
 
 - 비밀값이 AWS 밖(GitHub)에 있다. 누가 언제 값을 읽었는지에 대한 감사 이력은 없다.
+- Secret은 등록 후 값을 다시 볼 수 없다. DB 엔드포인트나 인스턴스 IP를 확인하려면 AWS 콘솔을 봐야 한다.
+- Secret으로 둔 값과 같은 문자열은 로그에서 모두 `***`로 바뀐다(예: 리전 이름, DB 이름). 로그가 읽기 불편해질 수 있다.
 - 변수 하나를 추가할 때 고칠 곳이 네 군데(검증 스키마, 예시 파일, `render-env.sh`, `deploy.yml`)와 GitHub 설정이다.
 - 잘못된 값으로 배포하면 헬스체크가 실패하고, pm2가 단일 인스턴스라 고칠 때까지 서비스가 중단된다. 빈 값은 사전에 막지만 틀린 값(예: 잘못된 비밀번호)은 막지 못한다.
 - `SEED_TOKEN`을 배포 필수값으로 뒀다. 서버가 이 값을 필수로 요구하기 전이라도, 등록하지 않으면 배포가 중단된다.

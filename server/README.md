@@ -178,6 +178,7 @@ type _Check = AssertNoMismatch<EntityMismatch<typeof contents.$inferSelect, Cont
 
 운영의 `.env.production`은 사람이 쓰지 않는다. GitHub Secrets/Variables에 등록한 값으로 배포할 때마다 새로 만들어진다([deploy/render-env.sh](deploy/render-env.sh), [결정 0004](docs/decisions/0004-production-env-from-github-secrets.md)).
 
+- 레포가 public이라 `CORS_ORIGINS`만 Variable이고 나머지(DB 접속 정보, 토큰, 인스턴스 주소)는 전부 Secret이다. 목록은 `deploy.yml` 상단 주석 참고.
 - 값 변경: GitHub → Settings → Secrets and variables → Actions에서 고친 뒤 Actions 탭에서 `Server Deploy`를 수동 실행한다. 값만 바꿔서는 배포가 돌지 않는다.
 - 변수 추가: `config/env.validation.ts`, `.env.example`, `deploy/render-env.sh`, `deploy.yml`의 env 블록을 같은 PR에서 고치고, **머지 전에** GitHub에 값을 등록한다.
 - 인스턴스에서 파일을 직접 고치면 다음 배포 때 덮어써진다.
