@@ -125,7 +125,7 @@ const useTvRemote = () => {
   };
 
   const moveChannel = (offset: 1 | -1) => {
-    postToApp({type: 'feedback', feedback: 'tap'});
+    postToApp({type: 'feedback', feedback: 'silentTap'});
     const count = cycleChannelNumbers.length;
     if (count === 0) {
       return;
@@ -172,7 +172,7 @@ const useTvRemote = () => {
   };
 
   const changeVolume = (direction: AppVolumeDirection) => {
-    postToApp({type: 'feedback', feedback: 'tap'});
+    postToApp({type: 'feedback', feedback: 'silentTap'});
     // 기기·환경에 따라(iOS Safari 등) 화면 속 음량 조절이 안 될 수 있어,
     // 이번 접속에서 처음 누를 때 한 번만 기기 음량 버튼 안내를 띄운다. 음량 조절은 그대로 한다.
     if (!hasSeenVolumeNotice) {
