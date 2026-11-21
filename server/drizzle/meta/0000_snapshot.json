@@ -14,9 +14,9 @@
           "notNull": true,
           "autoincrement": true
         },
-        "code": {
-          "name": "code",
-          "type": "varchar(10)",
+        "channel_number": {
+          "name": "channel_number",
+          "type": "tinyint unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -32,7 +32,7 @@
           "name": "slogan",
           "type": "varchar(150)",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "role": {
@@ -40,13 +40,6 @@
           "type": "varchar(200)",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false
-        },
-        "display_order": {
-          "name": "display_order",
-          "type": "tinyint unsigned",
-          "primaryKey": false,
-          "notNull": true,
           "autoincrement": false
         },
         "seed_keywords": {
@@ -75,10 +68,10 @@
         }
       },
       "indexes": {
-        "channels_code_uq": {
-          "name": "channels_code_uq",
+        "channels_channel_number_uq": {
+          "name": "channels_channel_number_uq",
           "columns": [
-            "code"
+            "channel_number"
           ],
           "isUnique": true
         }
@@ -187,19 +180,20 @@
         }
       },
       "indexes": {
-        "videos_youtube_video_id_uq": {
-          "name": "videos_youtube_video_id_uq",
-          "columns": [
-            "youtube_video_id"
-          ],
-          "isUnique": true
-        },
         "videos_app_channel_id_idx": {
           "name": "videos_app_channel_id_idx",
           "columns": [
             "app_channel_id"
           ],
           "isUnique": false
+        },
+        "videos_app_channel_youtube_video_uq": {
+          "name": "videos_app_channel_youtube_video_uq",
+          "columns": [
+            "app_channel_id",
+            "youtube_video_id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {

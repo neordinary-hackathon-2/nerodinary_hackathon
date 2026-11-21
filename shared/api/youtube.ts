@@ -4,7 +4,7 @@ import {channelSchema} from '../entities/channel.js';
 import {videoSchema} from '../entities/video.js';
 
 const youtubeSeedChannelSchema = z.object({
-  code: channelSchema.shape.code.meta({example: 'CH05'}),
+  channelNumber: channelSchema.shape.channelNumber,
   seedKeywords: z.array(z.string().min(1)).meta({example: ['예능 클립', '웃긴 모음']}),
 });
 
@@ -43,7 +43,7 @@ const youtubeSyncVideoSchema = videoSchema
 /** POST /api/internal/youtube/sync 의 요청 본문. */
 export const youtubeSyncRequestSchema = z
   .object({
-    channelCode: channelSchema.shape.code.meta({example: 'CH05'}),
+    channelNumber: z.number().int().min(1).max(9).meta({example: 1}),
     videos: z.array(youtubeSyncVideoSchema).min(1).meta({
       description: '조건에 맞는 후보가 없으면 요청 자체를 생략한다.',
     }),

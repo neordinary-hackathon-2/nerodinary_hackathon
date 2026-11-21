@@ -29,7 +29,10 @@ export const videos = mysqlTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex('videos_youtube_video_id_uq').on(table.youtubeVideoId),
+    uniqueIndex('videos_app_channel_youtube_video_uq').on(
+      table.appChannelId,
+      table.youtubeVideoId,
+    ),
     index('videos_app_channel_id_idx').on(table.appChannelId),
   ],
 );
