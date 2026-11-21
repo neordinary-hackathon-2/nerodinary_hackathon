@@ -1,10 +1,3 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="pixels" clip-path="url(#clip0_0_6)">
-<path id="Vector" d="M0 0H2V2H0V0ZM2 0H4V2H2V0ZM4 0H6V2H4V0ZM6 0H8V2H6V0ZM8 0H10V2H8V0ZM10 0H12V2H10V0ZM12 0H14V2H12V0ZM2 2H4V4H2V2ZM4 2H6V4H4V2ZM6 2H8V4H6V2ZM8 2H10V4H8V2ZM10 2H12V4H10V2ZM4 4H6V6H4V4ZM6 4H8V6H6V4ZM8 4H10V6H8V4ZM6 6H8V8H6V6Z" fill="#2B2A1C"/>
-</g>
-<defs>
-<clipPath id="clip0_0_6">
-<rect width="14" height="8" fill="white"/>
-</clipPath>
-</defs>
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 4H3V6H1V4ZM3 4H5V6H3V4ZM5 4H7V6H5V4ZM7 4H9V6H7V4ZM9 4H11V6H9V4ZM11 4H13V6H11V4ZM13 4H15V6H13V4ZM3 6H5V8H3V6ZM5 6H7V8H5V6ZM7 6H9V8H7V6ZM9 6H11V8H9V6ZM11 6H13V8H11V6ZM5 8H7V10H5V8ZM7 8H9V10H7V8ZM9 8H11V10H9V8ZM7 10H9V12H7V10Z" fill="#2B2A1C"/>
 </svg>
