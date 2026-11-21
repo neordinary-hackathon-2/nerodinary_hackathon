@@ -31,6 +31,23 @@ pnpm lint    # oxlint + prettier --check (포맷이 어긋나면 실패)
 pnpm format  # prettier --write
 ```
 
+## 폴더 구조 (app, web 공통)
+
+```
+src/
+├── app/         # 라우트 (Expo Router / Next.js App Router). 화면을 re-export만 한다
+├── screens/     # 화면 컴포넌트
+├── components/  # 재사용 컴포넌트
+├── hooks/
+├── constants/
+├── utils/
+└── api/         # 서버 API 호출
+```
+
+- `src/app/`의 파일은 전부 라우트로 잡힌다. 라우트 파일은 `export {default} from '@/screens/home-screen';`처럼 화면만 연결하고, 컴포넌트·훅은 다른 폴더에 둔다.
+- 화면 폴더 이름은 `pages`가 아니라 `screens`다. Next.js는 `src/pages/`를 Pages Router 라우트로 인식한다.
+- import는 `@/` 별칭을 쓴다 (`@/components/...`).
+
 ## 브랜치 전략
 
 서비스별로 에픽 브랜치를 두고, 작업 단위 브랜치는 에픽에서 따서 에픽으로 합친다. 에픽이 끝나면 `main`으로 합친다.
