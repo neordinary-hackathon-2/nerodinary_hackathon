@@ -4,6 +4,5 @@
   "plugins": ["typescript", "unicorn", "oxc", "react", "react-perf"],
   "rules": {
     "react-perf/jsx-no-new-object-as-prop": "warn"
-  },
-  "ignorePatterns": ["example/**"]
+  }
 }
