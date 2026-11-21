@@ -87,7 +87,7 @@
   mask-repeat: no-repeat;
 }
 
-/* 모바일 화면을 Figma 프레임에 맞춰 통째로 줄인다. --fit-scale은 useFitScale이 넣는다. */
+/* Figma 프레임을 화면에 맞춰 통째로 키우거나 줄인다(FigmaFrame). --fit-scale은 useFitScale이 넣는다. */
 @utility fit-scale {
   scale: var(--fit-scale, 1);
 }
