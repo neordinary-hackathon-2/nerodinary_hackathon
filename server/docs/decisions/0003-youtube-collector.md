@@ -1,6 +1,6 @@
 # 0003. YouTube 영상은 Actions에서 도는 수집기가 모아 내부 동기화 API로 보낸다
 
-- 상태: 결정됨 (2026-11-21). 내부 API 계약의 선택 필드 두 개는 **제안** 상태
+- 상태: 결정됨 (2026-11-21)
 - 결정자: sychoi
 - 범위: `server/src/youtube-collector/`, `.github/workflows/youtube-collect.yml`
 
@@ -34,14 +34,14 @@
 
 ## 서버 내부 API 계약
 
-원본은 `src/youtube/youtube-internal.schema.ts` 다. 수집기와 내부 API 컨트롤러가 이 파일을 함께 import하므로 한쪽만 바뀌면 컴파일에서 드러난다. 두 API 모두 `X-Seed-Token` 헤더로 보호한다. 컨트롤러는 아직 구현 전이다.
+원본은 `src/youtube/youtube-internal.schema.ts` 다. 수집기와 내부 API 컨트롤러가 이 파일을 함께 import하므로 한쪽만 바뀌면 컴파일에서 드러난다. 두 API 모두 `X-Seed-Token` 헤더로 보호한다. 컨트롤러는 `src/youtube/youtube-internal.controller.ts`다.
 
 ```
 GET  /api/internal/youtube/seed-config
-  → { channels: [{ code, seedKeywords: string[], storedVideoIds?: string[] }] }
+  → { channels: [{ channelNumber, seedKeywords: string[], storedVideoIds?: string[] }] }
 
 POST /api/internal/youtube/sync      (채널당 1회)
-  { channelCode,
+  { channelNumber,   (1~9)
     videos: [{ youtubeVideoId, title, thumbnailUrl, durationSeconds, publishedAt,
                sourceYoutubeChannelId, sourceChannelTitle, privacyStatus, isEmbeddable }],
     removedVideoIds?: string[] }
@@ -50,18 +50,34 @@ POST /api/internal/youtube/sync      (채널당 1회)
 
 - `videos`에는 새 영상과, 메타데이터를 갱신할 기존 영상이 함께 들어온다. 서버는 `youtubeVideoId` 기준으로 upsert하고 `lastRefreshedAt`을 갱신한다.
 - 수집기는 공개·임베드 가능·썸네일이 있는 영상만 보낸다. 서버는 길이·공개·임베드 조건을 다시 확인하고, 제외한 영상을 `rejected`로 돌려준다. 수집기는 이를 로그와 요약에 남긴다.
-- 한 영상은 한 채널에만 속한다(`youtube_video_id` 고유 제약).
+- 같은 영상이 여러 채널에 들어갈 수 있다. 한 채널 안에서만 중복을 막는다.
 
-### 제안: 선택 필드 두 개 (2026-11-21, 담당자 합의 전)
+### 구현 상태 (2026-11-21)
 
-처음 계약(PR #17)에는 저장된 영상을 알려주거나 지우는 수단이 없어, "채널당 100개 유지"와 재검증을 할 수 없었다. 그래서 선택 필드 두 개를 더했다. 둘 다 없어도 통신은 된다.
+두 API는 `src/youtube/`에 구현되어 있고 Swagger에 노출된다(Authorize 에 `X-Seed-Token` 입력).
 
-| 필드 | 없을 때 수집기 동작 |
-| --- | --- |
-| `seed-config` 의 `storedVideoIds` | 현재 개수를 몰라 재검증을 건너뛰고, 매 실행마다 목표 개수만큼 새로 찾아 보낸다(영상이 계속 누적된다) |
-| `sync` 의 `removedVideoIds` | 지울 영상이 없으면 수집기가 필드를 생략한다. 서버가 이 필드를 처리하지 않으면 죽은 영상이 DB에 남는다 |
+| 결정 | 내용 | 결정자 |
+| --- | --- | --- |
+| Swagger 노출 | 내부 API도 문서에 보인다. 토큰이 없으면 401 | sychoi |
+| 채널 간 중복 | 같은 영상을 여러 채널에 편성할 수 있다. 테이블은 나누지 않고 고유 제약을 `youtube_video_id` 단독에서 `(app_channel_id, youtube_video_id)` 복합으로 바꿨다(galllee, PR #25). `sync` 서비스는 제약에 기대지 않고 "있으면 갱신, 없으면 추가"로 처리하며, 복합 제약은 동시 실행 같은 예외 상황의 안전망이다. 수집기도 채널별로만 중복을 막는다 | sychoi, galllee (11.22 합의) |
+| `SEED_TOKEN` | 서버 필수 환경변수(16자 이상). 없으면 부팅에 실패한다. 운영에서는 GitHub Secret `SEED_TOKEN`을 배포가 `.env.production`에 넣는다([0004](0004-production-env-from-github-secrets.md)) | sychoi |
+| 채널 초기 데이터 | 마이그레이션이 아니라 SQL을 DB에 한 번 실행해 넣는다. 초기 마이그레이션(`0000`)이 0~9번 채널을 함께 넣는다(galllee, PR #25). 0번 컬러바는 검색어가 없어 수집하지 않는다 | sychoi |
 
-`removedVideoIds`만 있고 `videos`가 빈 요청이 가능하도록 `videos`의 최소 1개 제약을 뺐다. 보낼 것도 지울 것도 없으면 수집기는 호출하지 않는다.
+`sync` 처리:
+
+1. `channelNumber`(1~9)로 채널을 찾는다. 없으면 404 `CHANNEL404`.
+2. 영상마다 공개·임베드·길이를 다시 확인하고, 탈락은 사유와 함께 `rejected`로 돌려준다.
+3. 요청한 채널에 이미 있는 영상은 갱신하고 없는 영상만 추가한다. `last_refreshed_at`을 현재 시각으로 둔다.
+4. `removedVideoIds`는 요청한 채널의 행만 지운다. 같은 영상이 다른 채널에 있어도 건드리지 않는다.
+5. 3~4는 한 트랜잭션이다.
+
+`storedVideoIds`와 `removedVideoIds`는 처음 계약(PR #17)에 없던 선택 필드다. `sync`의 `videos`는 삭제만 있는 요청을 받도록 최소 1개 제약을 뺐다. 수집기는 요청 본문이 커지지 않게 영상을 50개씩 나눠 보낸다.
+
+로컬 MySQL 9.3에서 고유 제약을 없앤 상태로 확인한 것: 같은 영상 재전송 시 행이 늘지 않고 제목만 갱신, 같은 요청 3회 반복 후에도 행 수 그대로, 같은 영상의 두 채널 저장, 채널 범위 삭제, 한 요청 안의 같은 영상은 한 행. 실제 YouTube 키로 수집기를 연결한 확인(채널 1, 검색 3회로 100개 저장, 재실행 시 검색 0회)은 저장 로직을 바꾸기 전 코드로 했다.
+
+복합 고유 제약은 main 에 들어가 있고 운영 DB에도 적용되어 있다(2026-11-22 운영 DB 초기화 후 재적용).
+
+**알려진 한계**: 수집기가 같은 채널에 대해 동시에 두 번 실행되면 두 번째 요청이 복합 고유 제약에 걸려 500이 될 수 있다(데이터는 깨지지 않는다). 워크플로는 `concurrency`로 동시 실행을 막는다.
 
 ## 실패 시 동작
 

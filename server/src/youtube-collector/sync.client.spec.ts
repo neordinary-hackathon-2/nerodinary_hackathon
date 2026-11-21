@@ -23,8 +23,8 @@ describe('createSyncClient', () => {
       Promise.resolve(
         envelope({
           channels: [
-            { code: '1', seedKeywords: ['예능'] },
-            { code: '2', seedKeywords: ['금융'], storedVideoIds: ['a'] },
+            { channelNumber: 1, seedKeywords: ['예능'] },
+            { channelNumber: 2, seedKeywords: ['금융'], storedVideoIds: ['a'] },
           ],
         }),
       ),
@@ -37,8 +37,8 @@ describe('createSyncClient', () => {
     expect(init?.method).toBe('GET');
     expect(init?.headers).toMatchObject({ 'X-Seed-Token': 'seed-token' });
     expect(channels).toEqual([
-      { code: '1', seedKeywords: ['예능'] },
-      { code: '2', seedKeywords: ['금융'], storedVideoIds: ['a'] },
+      { channelNumber: 1, seedKeywords: ['예능'] },
+      { channelNumber: 2, seedKeywords: ['금융'], storedVideoIds: ['a'] },
     ]);
   });
 
@@ -49,7 +49,7 @@ describe('createSyncClient', () => {
       ),
     );
     const request = {
-      channelCode: '1',
+      channelNumber: 1,
       videos: [
         {
           youtubeVideoId: 'a',

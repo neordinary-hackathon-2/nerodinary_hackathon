@@ -9,7 +9,7 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 밥 먹는 20분 동안 뭘 볼지 고르지 않게, **채널을 넘기기만 하는 레트로 TV** (웹 + 웹뷰 앱).
 기획 원본은 레포 루트 [`docs/planning/`](../docs/planning/) (PM 관리, **읽기 전용**). 기능은 `02-features.md`, 화면 흐름은 `03-flow.md`.
 
-- 채널 1개 = 카테고리 1개. 영상 채널은 1~9번 9개(예능·금융·뉴스·먹방·요리·동물·음악·스포츠·홈쇼핑). 0번은 영상 없는 컬러바 화면으로, 클라이언트 고정이며 서버 데이터가 아니다.
+- 채널 1개 = 카테고리 1개. 영상 채널은 1~9번 9개(예능·금융·뉴스·먹방·요리·동물·음악·스포츠·홈쇼핑). DB에는 0번 컬러바 채널도 들어 있으나 검색어가 없어 영상을 수집하지 않는다.
 - 채널 번호는 한 자리이고 리모컨 숫자 키(0~9)와 1:1로 대응한다. 사용자는 채널 ▲(다음 채널) 또는 숫자 키로 이동한다. 이전 채널(▼)은 없다.
 - 사용자는 영상을 고르지 않는다. 채널을 켜면 그 채널의 영상 중 하나가 랜덤으로 재생된다(유튜브 임베드).
 - 마지막 채널(9번) 다음은 0번으로 순환한다. 순서 계산과 전환 연출은 Web 담당.
@@ -29,6 +29,9 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 - 부가 기능(시청 기록 X1 등)은 MVP가 끝난 뒤에만 다룬다.
 
 - 영상 수집·저장·랜덤 조회 스펙은 [`docs/youtube-data-api.md`](../docs/youtube-data-api.md)를 따른다. 스크래핑하지 않고 YouTube Data API로 수집하며, 랜덤 영상은 서버 API가 내려준다.
+- 내부 수집 API(`/api/internal/youtube/seed-config`, `sync`)는 `src/youtube/`에 있고 `X-Seed-Token`으로 보호한다. `SEED_TOKEN`이 없으면 서버가 뜨지 않는다.
+- 같은 YouTube 영상을 여러 채널에 편성할 수 있다(11.22 결정). 고유 제약은 `(app_channel_id, youtube_video_id)` 복합이고, `sync` 서비스는 "있으면 갱신, 없으면 추가"로 처리한다.
+- 채널 0~9번은 초기 마이그레이션(`0000`)이 넣는다. **이미 적용된 마이그레이션 파일은 고치지 않는다.** 내용을 바꿔도 적용된 DB에는 반영되지 않아 운영에서 500이 난다(11.22 장애). 스키마를 바꾸면 `pnpm db:generate`로 새 파일을 추가한다.
 - 수집기는 `src/youtube-collector/`(Nest와 별개, Actions에서 실행)다. 서버 내부 API 계약과 할당량은 [`docs/decisions/0003-youtube-collector.md`](docs/decisions/0003-youtube-collector.md).
 
 미확정(임의로 정하지 말고 사용자에게 확인): 최종 채널 목록, 검색어를 DB와 저장소 JSON 중 어디서 관리할지.
@@ -98,6 +101,6 @@ PR 전에는 CI와 같은 순서로 확인한다: `lint` → `db:generate`(변�
 - 브랜치: `main`이 아니라 **에픽에서 딴다.** `epic/server/<작업>` ← `feat|fix|chore|refact/server/<작업>`. PR 대상도 그 에픽이다.
 - **`main`에 `server/` 또는 `shared/` 변경이 합쳐지면 바로 운영에 배포된다.** 에픽은 배포해도 되는 상태일 때만 합친다.
 - 커밋: `<type>: <한국어 설명>` (Conventional Commits, 헤더 100자 이내).
-- 실제 값이 든 `.env*`는 커밋하지 않는다. 환경변수를 추가하면 `config/env.validation.ts`와 `.env.example`도 같이 고친다.
+- 실제 값이 든 `.env*`는 커밋하지 않는다. 환경변수를 추가하면 `config/env.validation.ts`와 `.env.example`도 같이 고친다. 운영에 필요한 값이면 `deploy/render-env.sh`와 `deploy.yml`의 env 블록에도 넣고, 머지 전에 GitHub Secrets/Variables 등록을 사용자에게 요청한다(운영 `.env.production`은 배포가 만든다).
 - 작업 중 만드는 문서는 `server/docs/`에 둔다. 설계 결정은 `server/docs/decisions/NNNN-<제목>.md`.
 - 인프라(Lightsail, RDS, Caddy, `deploy/`, `.github/workflows/`)는 요청이 있을 때만 건드린다.

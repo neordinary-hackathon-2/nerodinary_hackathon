@@ -36,7 +36,7 @@ function video(id: string, overrides: Partial<VideoDetail> = {}): VideoDetail {
 /** 기본은 서버가 저장된 영상 목록을 내려주는(비어 있는) 채널이다. */
 function channel(overrides: Partial<SeedChannel> = {}): SeedChannel {
   return {
-    code: '1',
+    channelNumber: 1,
     seedKeywords: ['예능'],
     storedVideoIds: [],
     ...overrides,
@@ -86,13 +86,13 @@ function fakeYoutube(config: {
 
 function fakeServer(
   channels: SeedChannel[],
-  config: { failSyncFor?: string[]; rejectIds?: string[] } = {},
+  config: { failSyncFor?: number[]; rejectIds?: string[] } = {},
 ) {
   const synced: YoutubeSyncRequestDto[] = [];
   const server: CollectorServer = {
     fetchChannels: () => Promise.resolve(channels),
     sync(request) {
-      if (config.failSyncFor?.includes(request.channelCode)) {
+      if (config.failSyncFor?.includes(request.channelNumber)) {
         return Promise.reject(new Error('서버 오류'));
       }
       synced.push(request);
@@ -194,7 +194,7 @@ describe('runCollector', () => {
       },
     });
     const { server, synced } = fakeServer([
-      { code: '1', seedKeywords: ['예능'] },
+      { channelNumber: 1, seedKeywords: ['예능'] },
     ]);
 
     const report = await runCollector(
@@ -211,30 +211,89 @@ describe('runCollector', () => {
     });
   });
 
-  it('길이 범위 밖, 썸네일 없는 영상, 다른 채널에 이미 있는 영상은 추가하지 않는다', async () => {
+  it('길이 범위 밖이거나 썸네일이 없는 영상은 추가하지 않는다', async () => {
     const youtube = fakeYoutube({
       catalog: [
         video('short', { durationSeconds: 599 }),
         video('long', { durationSeconds: 7201 }),
         video('nothumb', { thumbnailUrl: null }),
-        video('other'),
         video('ok'),
       ],
       pages: {
         '예능|medium|': {
-          videoIds: ['short', 'long', 'nothumb', 'other', 'ok', 'ok'],
+          videoIds: ['short', 'long', 'nothumb', 'ok', 'ok'],
           nextPageToken: null,
         },
       },
     });
+    const { server, synced } = fakeServer([channel()]);
+
+    await runCollector({ youtube: youtube.client, server }, options);
+
+    expect(ids(synced[0])).toEqual(['ok']);
+  });
+
+  it('다른 채널에 이미 있는 영상도 이 채널에 추가하고, 같은 채널에 있는 영상은 다시 추가하지 않는다', async () => {
+    const youtube = fakeYoutube({
+      catalog: [video('shared'), video('mine')],
+      pages: {
+        '예능|medium|': { videoIds: ['shared', 'mine'], nextPageToken: null },
+      },
+    });
     const { server, synced } = fakeServer([
-      channel(),
-      channel({ code: '2', seedKeywords: [], storedVideoIds: ['other'] }),
+      channel({ channelNumber: 1, storedVideoIds: ['mine'] }),
+      channel({
+        channelNumber: 2,
+        seedKeywords: [],
+        storedVideoIds: ['shared'],
+      }),
+    ]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      options,
+    );
+
+    expect(ids(synced.find((s) => s.channelNumber === 1))).toEqual([
+      'mine',
+      'shared',
+    ]);
+    expect(report.channels[0]).toMatchObject({ added: 1, candidates: 1 });
+  });
+
+  it('영상이 많으면 50개씩 나눠 보내고 삭제 목록은 첫 요청에만 싣는다', async () => {
+    const stored = Array.from({ length: 120 }, (_, i) => `v${i}`);
+    const youtube = fakeYoutube({ catalog: stored.map((id) => video(id)) });
+    const { server, synced } = fakeServer(
+      [channel({ storedVideoIds: [...stored, 'gone'], seedKeywords: [] })],
+      { rejectIds: ['v0', 'v60'] },
+    );
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      { ...options, targetPerChannel: 120 },
+    );
+
+    expect(synced.map((s) => s.videos.length)).toEqual([50, 50, 20]);
+    expect(synced.map((s) => s.removedVideoIds)).toEqual([
+      ['gone'],
+      undefined,
+      undefined,
+    ]);
+    expect(report.channels[0].rejected).toBe(2);
+  });
+
+  it('지울 영상만 있으면 영상 없이 한 번 보낸다', async () => {
+    const youtube = fakeYoutube({});
+    const { server, synced } = fakeServer([
+      channel({ storedVideoIds: ['gone'], seedKeywords: [] }),
     ]);
 
     await runCollector({ youtube: youtube.client, server }, options);
 
-    expect(ids(synced.find((s) => s.channelCode === '1'))).toEqual(['ok']);
+    expect(synced).toEqual([
+      { channelNumber: 1, videos: [], removedVideoIds: ['gone'] },
+    ]);
   });
 
   it('동기화 요청의 영상은 서버 계약의 필드만 담는다', async () => {
@@ -247,7 +306,7 @@ describe('runCollector', () => {
     );
 
     expect(synced[0]).toEqual({
-      channelCode: '1',
+      channelNumber: 1,
       videos: [
         {
           youtubeVideoId: 'a',
@@ -283,7 +342,7 @@ describe('runCollector', () => {
   it('검색어가 없는 채널은 검색하지 않는다', async () => {
     const youtube = fakeYoutube({});
     const { server, synced } = fakeServer([
-      channel({ code: '0', seedKeywords: [] }),
+      channel({ channelNumber: 0, seedKeywords: [] }),
     ]);
 
     const report = await runCollector(
@@ -319,8 +378,8 @@ describe('runCollector', () => {
   it('채널당 상한에 닿은 채널은 더 검색하지 않고 다른 채널은 계속한다', async () => {
     const youtube = fakeYoutube({});
     const { server } = fakeServer([
-      channel({ code: '1', seedKeywords: ['가', '나', '다'] }),
-      channel({ code: '2', seedKeywords: ['라'] }),
+      channel({ channelNumber: 1, seedKeywords: ['가', '나', '다'] }),
+      channel({ channelNumber: 2, seedKeywords: ['라'] }),
     ]);
 
     const report = await runCollector(
@@ -336,8 +395,8 @@ describe('runCollector', () => {
   it('채널을 돌아가며 한 페이지씩 검색한다', async () => {
     const youtube = fakeYoutube({});
     const { server } = fakeServer([
-      channel({ code: '1', seedKeywords: ['가'] }),
-      channel({ code: '2', seedKeywords: ['나'] }),
+      channel({ channelNumber: 1, seedKeywords: ['가'] }),
+      channel({ channelNumber: 2, seedKeywords: ['나'] }),
     ]);
 
     await runCollector(
@@ -372,7 +431,7 @@ describe('runCollector', () => {
     });
     const { server, synced } = fakeServer([
       channel({ storedVideoIds: ['a', 'gone'] }),
-      channel({ code: '2' }),
+      channel({ channelNumber: 2 }),
     ]);
 
     const report = await runCollector(
@@ -420,10 +479,10 @@ describe('runCollector', () => {
     const youtube = fakeYoutube({ catalog: [video('a'), video('b')] });
     const { server, synced } = fakeServer(
       [
-        channel({ code: '1', storedVideoIds: ['a'], seedKeywords: [] }),
-        channel({ code: '2', storedVideoIds: ['b'], seedKeywords: [] }),
+        channel({ channelNumber: 1, storedVideoIds: ['a'], seedKeywords: [] }),
+        channel({ channelNumber: 2, storedVideoIds: ['b'], seedKeywords: [] }),
       ],
-      { failSyncFor: ['1'] },
+      { failSyncFor: [1] },
     );
 
     const report = await runCollector(
@@ -431,7 +490,7 @@ describe('runCollector', () => {
       options,
     );
 
-    expect(synced.map((s) => s.channelCode)).toEqual(['2']);
+    expect(synced.map((s) => s.channelNumber)).toEqual([2]);
     expect(report.failed).toBe(true);
     expect(report.channels[0].syncError).toBe('서버 오류');
   });
@@ -452,25 +511,23 @@ describe('runCollector', () => {
     expect(report.channels[0].added).toBe(1);
   });
 
-  it('onlyChannelCode 로 한 채널만 처리하되 다른 채널의 영상과는 중복되지 않게 한다', async () => {
+  it('onlyChannelNumber 로 한 채널만 처리한다', async () => {
     const youtube = fakeYoutube({
-      catalog: [video('other'), video('n1')],
-      pages: {
-        '예능|medium|': { videoIds: ['other', 'n1'], nextPageToken: null },
-      },
+      catalog: [video('n1')],
+      pages: { '예능|medium|': { videoIds: ['n1'], nextPageToken: null } },
     });
     const { server, synced } = fakeServer([
-      channel({ code: '1' }),
-      channel({ code: '2', storedVideoIds: ['other'] }),
+      channel({ channelNumber: 1 }),
+      channel({ channelNumber: 2 }),
     ]);
 
     const report = await runCollector(
       { youtube: youtube.client, server },
-      { ...options, onlyChannelCode: '1' },
+      { ...options, onlyChannelNumber: 1 },
     );
 
-    expect(report.channels.map((c) => c.channelCode)).toEqual(['1']);
-    expect(synced.map((s) => s.channelCode)).toEqual(['1']);
-    expect(ids(synced[0])).toEqual(['n1']);
+    expect(report.channels.map((c) => c.channelNumber)).toEqual([1]);
+    expect(synced.map((s) => s.channelNumber)).toEqual([1]);
+    expect(youtube.searches.every((q) => q.query === '예능')).toBe(true);
   });
 });

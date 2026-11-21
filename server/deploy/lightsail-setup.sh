@@ -26,6 +26,7 @@ mkdir -p ~/app
 cat <<'NEXT'
 
 완료. 남은 작업:
-  1) ~/app/.env.production 작성 (.env.example 참고, chmod 600)
-  2) /etc/caddy/Caddyfile 을 deploy/Caddyfile 내용으로 교체 후: sudo systemctl reload caddy
+  1) /etc/caddy/Caddyfile 을 deploy/Caddyfile 내용으로 교체 후: sudo systemctl reload caddy
+  2) 운영 환경변수는 여기서 만들지 않는다. GitHub Secrets/Variables 에 등록하면
+     배포(deploy.yml)가 ~/app/.env.production 을 권한 600으로 써 준다.
 NEXT
