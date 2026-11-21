@@ -5,7 +5,10 @@ import {
   ApiFailure,
   ApiSuccess,
 } from '../common/swagger/api-envelope.decorator.js';
-import { HealthResponseDto } from './dto/health-response.dto.js';
+import {
+  type HealthResponseDto,
+  healthResponseSchema,
+} from '../../../shared/index.js';
 import { HealthService } from './health.service.js';
 
 @ApiTags('Health')
@@ -19,7 +22,7 @@ export class HealthController {
     description:
       '서버와 DB 연결 상태를 반환합니다. 배포 후 헬스체크에 사용합니다.',
   })
-  @ApiSuccess(HealthResponseDto)
+  @ApiSuccess(healthResponseSchema)
   @ApiFailure(ErrorCodes.INTERNAL_SERVER_ERROR)
   check(): Promise<HealthResponseDto> {
     return this.healthService.check();

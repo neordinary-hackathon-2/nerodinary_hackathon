@@ -6,5 +6,23 @@
   },
   "env": {
     "node": true
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@nestjs/*", "drizzle-orm", "drizzle-orm/*", "../**"],
+                "message": "shared/ 는 FE와 공유된다. zod 와 이 폴더 안의 파일만 import 한다."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { sql } from 'drizzle-orm';
 import type { Database } from '../database/database.types.js';
-import { HealthResponseDto } from './dto/health-response.dto.js';
+import type { HealthResponseDto } from '../../../shared/index.js';
 
 @Injectable()
 export class HealthService {

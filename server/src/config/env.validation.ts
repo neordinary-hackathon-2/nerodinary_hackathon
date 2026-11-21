@@ -1,84 +1,35 @@
-import { plainToInstance, Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  validateSync,
-} from 'class-validator';
+import { z } from 'zod';
 
-export enum Environment {
-  Local = 'local',
-  Production = 'production',
-  Test = 'test',
-}
+export const ENVIRONMENTS = ['local', 'production', 'test'] as const;
 
-const toBoolean = ({ value }: { value: unknown }) =>
-  value === true || value === 'true';
+const booleanFlag = z.enum(['true', 'false']).default('false');
 
-class EnvironmentVariables {
-  @IsEnum(Environment)
-  NODE_ENV: Environment = Environment.Local;
+const envSchema = z.object({
+  NODE_ENV: z.enum(ENVIRONMENTS).default('local'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  CORS_ORIGINS: z.string().default('*'),
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  PORT: number = 3000;
-
-  @IsString()
-  CORS_ORIGINS: string = '*';
-
-  @IsString()
-  DB_HOST: string;
-
-  @Type(() => Number)
-  @IsInt()
-  DB_PORT: number = 3306;
-
-  @IsString()
-  DB_USERNAME: string;
-
-  @IsString()
-  DB_PASSWORD: string;
-
-  @IsString()
-  DB_DATABASE: string;
-
-  @IsOptional()
-  @IsBoolean()
-  DB_MIGRATE_ON_START: boolean = false;
-
-  @IsOptional()
-  @IsBoolean()
-  DB_LOGGING: boolean = false;
-}
+  DB_HOST: z.string().min(1),
+  DB_PORT: z.coerce.number().int().default(3306),
+  DB_USERNAME: z.string().min(1),
+  DB_PASSWORD: z.string(),
+  DB_DATABASE: z.string().min(1),
+  DB_MIGRATE_ON_START: booleanFlag,
+  DB_LOGGING: booleanFlag,
+});
 
 /**
  * 부팅 시 환경변수를 검증한다. 필수 값이 없거나 형식이 틀리면 즉시 실패시켜
  * 잘못된 설정으로 서버가 뜨는 것을 막는다.
  */
 export function validateEnv(config: Record<string, unknown>) {
-  const normalized = {
-    ...config,
-    ...(config.DB_MIGRATE_ON_START !== undefined && {
-      DB_MIGRATE_ON_START: toBoolean({ value: config.DB_MIGRATE_ON_START }),
-    }),
-    ...(config.DB_LOGGING !== undefined && {
-      DB_LOGGING: toBoolean({ value: config.DB_LOGGING }),
-    }),
-  };
-  const validated = plainToInstance(EnvironmentVariables, normalized);
-  const errors = validateSync(validated, { skipMissingProperties: false });
+  const parsed = envSchema.safeParse(config);
 
-  if (errors.length > 0) {
-    const details = errors
-      .map((e) => `  - ${Object.values(e.constraints ?? {}).join(', ')}`)
+  if (!parsed.success) {
+    const details = parsed.error.issues
+      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
       .join('\n');
     throw new Error(`환경변수 설정이 올바르지 않습니다.\n${details}`);
   }
-  return validated;
+  return config;
 }

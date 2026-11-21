@@ -7,13 +7,13 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "build": "nest build && node scripts/write-dist-entry.mjs",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"../shared/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "oxlint --type-aware src/ test/",
+    "lint": "oxlint --type-aware src/ test/ && pnpm lint:shared",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
@@ -22,7 +22,8 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint:shared": "cd .. && server/node_modules/.bin/oxlint -c server/.oxlintrc.json shared"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -31,18 +32,18 @@
     "@nestjs/drizzle": "^0.0.2",
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/swagger": "^12.1.2",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.4",
     "mysql2": "^3.24.6",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
+    "@standard-schema/spec": "^1.1.0",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",

@@ -184,12 +184,23 @@ interface ThemedTextProps extends TextProps {
 
 ### 5.3 서버와 타입 공유
 
-API 요청/응답 타입의 기준은 `server/`의 DTO다.
+엔티티와 API 요청/응답 타입은 **직접 쓰지 않고 레포 루트 [`shared/`](shared/)에서 가져온다.** zod 스키마로 정의돼 있고 서버가 같은 스키마로 검증한다.
 
-- 이름과 필드는 서버 DTO와 똑같이 쓴다 (`HealthResponseDto` → `HealthResponseDto`). 화면에 맞게 필드 이름을 바꾸거나 합치지 않는다. 변환이 필요하면 훅의 `select`에서 한다 → [9.1](#91-api-훅-tanstack-query).
-- 서버가 바뀌면 같은 PR에서 app/web 타입도 고친다.
-- 타입은 해당 도메인 API 모듈(`src/api/players.ts`)에 `export type`으로 둔다.
-- 서버 응답 봉투 `{isSuccess, code, message, result}`는 `src/api/client.ts`에서 벗기고, 도메인 타입은 `result` 안쪽만 정의한다 → [7.1](#71-클라이언트).
+```ts
+import type {Content, CreateContentRequestDto} from '@shared';
+```
+
+| 폴더 | 내용 | 예시 |
+|---|---|---|
+| `shared/entities/` | 도메인 엔티티 (zod 스키마 + 타입) | `contentSchema`, `Content` |
+| `shared/api/` | API 요청/응답. 엔티티에서 파생 | `createContentRequestSchema`, `CreateContentRequestDto` |
+
+- **(자동)** 반드시 `import type`으로 가져온다. 값으로 import하면 린트 오류가 난다. 스키마 자체(런타임 검증)는 FE에서 쓰지 않는다.
+- `@shared` 별칭은 `tsconfig.json`의 `paths`에 있다(`../shared/index.ts`). 서버 코드를 설치하거나 빌드할 필요는 없다.
+- 타입을 그대로 쓴다. 화면에 맞게 필드 이름을 바꾸거나 합치지 않는다. 변환이 필요하면 훅의 `select`에서 한다 → [9.1](#91-api-훅-tanstack-query).
+- `shared/`가 바뀌면 app/web 타입체크가 바로 깨진다. 바꾸는 PR에서 app/web 사용처도 같이 고친다.
+- 필요한 타입이 아직 없으면 서버 담당자에게 요청하거나 `shared/`에 직접 추가한다. 이 폴더의 파일은 `zod`와 같은 폴더 안의 파일만 import할 수 있다.
+- 서버 응답 봉투 `{isSuccess, code, message, result}`는 `src/api/client.ts`에서 벗기고, 도메인 타입은 `result` 안쪽만 쓴다. 봉투 타입도 `ApiEnvelope`로 가져온다 → [7.1](#71-클라이언트).
 
 ### 5.4 enum
 
@@ -268,12 +279,7 @@ export {default} from '@/screens/PlayerDetailScreen';
 
 ```ts
 // src/api/client.ts
-type ApiEnvelope<T> = {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-  result: T | null;
-};
+import type {ApiEnvelope} from '@shared';
 
 export class ApiError extends Error {
   constructor(
@@ -302,20 +308,13 @@ export const request = async <T>(path: string, init?: RequestInit) => {
 
 ### 7.2 도메인 모듈
 
-도메인마다 파일 하나. 요청/응답 타입과 함수를 같이 두고, 함수는 default export 객체로 묶는다.
+도메인마다 파일 하나. 요청/응답 타입은 `shared/`에서 가져오고([5.3](#53-서버와-타입-공유)), 함수는 default export 객체로 묶는다.
 
 ```ts
 // src/api/players.ts
+import type {EditPlayerRequestDto, PlayerResponseDto} from '@shared';
+
 import {request} from './client';
-
-export type PlayerResponseDto = {
-  id: number;
-  nickname: string;
-};
-
-export type EditPlayerRequestDto = {
-  nickname: string;
-};
 
 export default {
   getPlayer(id: number) {

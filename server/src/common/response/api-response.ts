@@ -1,33 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
+import type { ApiEnvelope } from '../../../../shared/index.js';
 
 /**
- * 모든 API가 공유하는 응답 봉투.
+ * 모든 API가 공유하는 응답 봉투. (타입 정의는 레포 루트 shared/api/envelope.ts)
  * 성공: { isSuccess: true,  code: 'COMMON200', message, result }
  * 실패: { isSuccess: false, code: 'COMMON400', message, result: null | 상세 }
  */
-export class ApiResponse<T> {
-  @ApiProperty({ example: true })
-  isSuccess: boolean;
-
-  @ApiProperty({ example: 'COMMON200' })
-  code: string;
-
-  @ApiProperty({ example: '요청에 성공했습니다.' })
-  message: string;
-
-  result: T | null;
-
+export class ApiResponse<T> implements ApiEnvelope<T> {
   private constructor(
-    isSuccess: boolean,
-    code: string,
-    message: string,
-    result: T | null,
-  ) {
-    this.isSuccess = isSuccess;
-    this.code = code;
-    this.message = message;
-    this.result = result;
-  }
+    readonly isSuccess: boolean,
+    readonly code: string,
+    readonly message: string,
+    readonly result: T | null,
+  ) {}
 
   static success<T>(code: string, message: string, result: T): ApiResponse<T> {
     return new ApiResponse(true, code, message, result ?? null);
