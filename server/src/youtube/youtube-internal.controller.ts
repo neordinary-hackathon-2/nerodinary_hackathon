@@ -25,7 +25,7 @@ import {
 import { YoutubeSyncService } from './youtube-sync.service.js';
 import { SEED_TOKEN_SECURITY } from './youtube.constants.js';
 
-@ApiTags('Internal · YouTube 수집')
+@ApiTags('[내부용] YouTube 수집 · GitHub Actions 전용')
 @ApiSecurity(SEED_TOKEN_SECURITY)
 @UseGuards(SeedTokenGuard)
 @Controller('internal/youtube')
