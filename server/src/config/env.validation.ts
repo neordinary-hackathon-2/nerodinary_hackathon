@@ -16,6 +16,13 @@ const envSchema = z.object({
   DB_DATABASE: z.string().min(1),
   DB_MIGRATE_ON_START: booleanFlag,
   DB_LOGGING: booleanFlag,
+
+  // 내부 수집 API(/api/internal/youtube/*) 인증 토큰. 없으면 서버가 뜨지 않는다.
+  SEED_TOKEN: z.string().min(16),
+  MIN_DURATION_SECONDS: z.coerce.number().int().positive().optional(),
+  MAX_DURATION_SECONDS: z.coerce.number().int().positive().optional(),
+  // 채널당 유지할 영상 수. 낮추면 다음 수집 때 초과분이 지워진다.
+  TARGET_PER_CHANNEL: z.coerce.number().int().positive().optional(),
 });
 
 /**

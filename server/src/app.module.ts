@@ -6,6 +6,7 @@ import { validateEnv } from './config/env.validation.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { ChannelsModule } from './channels/channels.module.js';
+import { YoutubeModule } from './youtube/youtube.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ChannelsModule } from './channels/channels.module.js';
     DatabaseModule,
     HealthModule,
     ChannelsModule,
+    YoutubeModule,
   ],
 })
 export class AppModule {}
