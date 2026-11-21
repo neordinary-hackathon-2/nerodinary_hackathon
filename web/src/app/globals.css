@@ -36,6 +36,8 @@
   --shadow-key: 0 4px 0 var(--color-shadow-hard);
   --shadow-key-sm: 0 3px 0 var(--color-shadow-hard);
   --shadow-key-pressed: 0 1px 0 var(--color-shadow-hard);
+  --shadow-rocker-up: 0 8px 0 var(--color-shadow-hard);
+  --shadow-rocker-down: 0 -8px 0 var(--color-shadow-hard);
 
   --drop-shadow-remote: 7.649px 7.649px 0 var(--color-shadow-hard);
 
