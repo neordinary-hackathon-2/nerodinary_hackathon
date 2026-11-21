@@ -45,9 +45,12 @@ const HomeScreen = () => {
   );
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-mobile flex-col">
+    <main className="mx-auto flex min-h-dvh w-full max-w-mobile flex-col">
       <Header isLive={screen === 'live'} />
-      <div className="mt-[45px] px-5">
+      {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(꺼짐 117px, 켜짐 98px)에 맞춘다. */}
+      <div
+        className={`mt-[45px] px-5 ${isPowerOn ? 'lg:mt-[98px]' : 'lg:mt-[117px]'}`}
+      >
         <PixelTv screen={screen} channelLabel={channelLabel}>
           {screen === 'live' && video && (
             <TvPlayer
@@ -81,7 +84,8 @@ const HomeScreen = () => {
       {isGuideOpen && (
         // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
         // z-10: TV 화면(유튜브 iframe)보다 위에 그려야 영상까지 어둡게 덮인다.
-        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px]">
+        // fixed: PC에서도 화면 컬럼이 아닌 창 전체를 덮고, PC 시안처럼 카드를 세로 가운데에 둔다.
+        <div className="fixed inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px] lg:items-center lg:pt-0">
           <button
             type="button"
             aria-label="편성표 닫기"

@@ -36,6 +36,7 @@
   --color-room-shade: rgb(204 187 167 / 0.4);
 
   --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
+  --shadow-hard-lg: 4px 4px 0 var(--color-shadow-hard);
   --shadow-key: 0 4px 0 var(--color-shadow-hard);
   --shadow-key-sm: 0 3px 0 var(--color-shadow-hard);
   --shadow-key-md: 0 3.387px 0 var(--color-shadow-hard);
