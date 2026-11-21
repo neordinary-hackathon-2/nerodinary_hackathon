@@ -4,4 +4,5 @@
  *
  *   export * from './content.schema.js';
  */
-export {};
+export * from './channel.schema.js';
+export * from './video.schema.js';
