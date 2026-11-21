@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import MaskIcon from './MaskIcon';
 
-type RemoteButtonType = 'power' | 'refresh' | 'number';
+type RemoteButtonType = 'power' | 'refresh' | 'guide' | 'number';
 
 interface RemoteButtonProps {
   type: RemoteButtonType;
@@ -16,13 +16,15 @@ const KEY_COLOR =
 const buttonClassName: Record<RemoteButtonType, string> = {
   power:
     'h-[28px] w-[30px] border-ink-900 bg-bg-surface shadow-key-sm hover:bg-bg-accent active:bg-ink-700 active:shadow-none',
-  refresh: `h-[28px] w-[31px] ${KEY_COLOR} shadow-key-sm active:shadow-none`,
-  number: `flex h-[31px] w-[41px] items-center justify-center ${KEY_COLOR} shadow-key active:shadow-key-pressed`,
+  refresh: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:shadow-none`,
+  guide: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:shadow-none`,
+  number: `flex h-[30px] w-[40px] items-center justify-center ${KEY_COLOR} shadow-key active:shadow-key-pressed`,
 };
 
 const buttonName: Record<RemoteButtonType, string | undefined> = {
   power: '전원',
   refresh: '새로고침',
+  guide: '편성표',
   number: undefined,
 };
 
@@ -31,7 +33,10 @@ const renderContent: Record<RemoteButtonType, (label?: string) => ReactNode> = {
     <MaskIcon className="top-[2px] left-[3px] size-[18px] bg-ink-900 mask-[url(/icons/power.svg)] mask-size-[114.2857%] mask-center group-active:bg-white" />
   ),
   refresh: () => (
-    <MaskIcon className="top-[3px] left-[5px] size-[14.8425px] bg-black/50 mask-[url(/icons/refresh.svg)] mask-size-[114.2857%] mask-center group-hover:bg-ink-900 group-active:top-[4px] group-active:left-[6px] group-active:size-[12.8635px] group-active:bg-black" />
+    <MaskIcon className="top-[3.77px] left-[6.03px] size-[16.758px] bg-black/50 mask-[url(/icons/refresh.svg)] mask-size-[100%_100%] group-hover:bg-ink-900 group-active:top-[4.887px] group-active:left-[7.147px] group-active:size-[14.524px] group-active:bg-black" />
+  ),
+  guide: () => (
+    <MaskIcon className="top-[3.77px] left-[6.03px] size-[18.0645px] bg-black/50 mask-[url(/icons/list.svg)] mask-size-[100%_100%] group-hover:bg-ink-900 group-active:top-[4.974px] group-active:left-[7.234px] group-active:size-[15.656px] group-active:bg-black" />
   ),
   number: (label) => (
     <span className="font-press-start text-[11px] leading-none text-black/50 group-hover:text-black group-active:text-black">

@@ -1,11 +1,10 @@
 import RemoteButton from './RemoteButton';
 import RemoteRocker from './RemoteRocker';
 
-const NUMBER_KEY_ROWS = [
-  ['1', '2', '3'],
-  ['4', '5', '6'],
-  ['7', '8', '9'],
-  ['*', '0', '#'],
+// prettier-ignore
+const NUMBER_KEYS = [
+  '1', '2', '3', '4', '5', '6',
+  '7', '8', '9', '*', '0', '#',
 ];
 
 type RemoteSize = 'default' | 'big';
@@ -31,26 +30,22 @@ const Remote = ({size = 'default'}: RemoteProps) => {
         <div className="absolute top-0 left-0 h-[469px] w-[191px] overflow-hidden bg-[url(/remote/body.svg)] bg-no-repeat drop-shadow-remote">
           <div className="absolute top-[5px] left-[5px] h-[459px] w-[181px] bg-[url(/remote/body-line.svg)] bg-no-repeat" />
           {!isBig && (
-            <div className="absolute top-[201px] left-[26px] flex flex-col gap-2">
-              {NUMBER_KEY_ROWS.map((row) => (
-                <div key={row.join('')} className="flex gap-2">
-                  {row.map((key) => (
-                    <RemoteButton key={key} type="number" label={key} />
-                  ))}
-                </div>
+            <div className="absolute top-[209px] left-[27px] grid grid-cols-3 gap-2">
+              {NUMBER_KEYS.map((key) => (
+                <RemoteButton key={key} type="number" label={key} />
               ))}
             </div>
           )}
-          <RemoteButton
-            type="refresh"
-            className="absolute top-[126px] left-[80px]"
-          />
+          <div className="absolute top-[104.23px] left-[78px] flex flex-col gap-3">
+            <RemoteButton type="refresh" />
+            <RemoteButton type="guide" />
+          </div>
         </div>
         <div className="absolute top-[10px] left-[10px] h-14 w-[171px] bg-[url(/remote/header-band.svg)] bg-no-repeat" />
         <div className="absolute top-[18px] left-[73px] h-2 w-[46px] bg-ink-900" />
         <RemoteButton
           type="power"
-          className="absolute top-[33px] left-[20px]"
+          className="absolute top-[26px] left-[20px]"
         />
         <p className="absolute top-[37px] left-[96px] font-silkscreen text-[14px] leading-normal font-bold whitespace-nowrap text-olive-100">
           BAP-TV
