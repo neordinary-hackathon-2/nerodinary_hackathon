@@ -9,10 +9,15 @@ interface ChannelGuideProps {
 
 const ChannelGuide = ({channels}: ChannelGuideProps) => {
   return (
-    <section className="flex h-[488px] w-[322px] shrink-0 flex-col items-center justify-center gap-[18px] bg-[url(/channel-guide/frame.svg)] bg-no-repeat px-6 py-8">
+    <section className="relative flex h-[488px] w-[322px] shrink-0 flex-col items-center justify-center gap-[18px] bg-[url(/channel-guide/frame.svg)] bg-no-repeat px-6 py-8">
       <h2 className="w-full text-center text-[20px] leading-[1.2] font-bold text-text-muted">
         밥송국 채널 편성표
       </h2>
+      <button
+        type="button"
+        aria-label="닫기"
+        className="absolute top-[37px] left-[282px] size-4 bg-[url(/icons/close.svg)] bg-no-repeat"
+      />
       <div className="w-full">
         <div className="flex h-7 items-center border-b-2 border-brown-500 px-4 text-[12px] leading-normal font-semibold text-olive-500">
           <span className="w-[88px]">채널</span>
