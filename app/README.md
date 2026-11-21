@@ -31,6 +31,8 @@ npx expo run:android --variant release        # Android release 빌드
 | `modules/system-volume/`           | 기기 미디어 볼륨을 한 단계 올리고 내리는 로컬 Expo 모듈 (Android `AudioManager`, iOS `MPVolumeView`)  |
 | `assets/sounds/`                   | 효과음 (8비트 사각파, 22.05kHz mono)                                                                  |
 | `assets/images/splash-*.png`       | 스플래시 이미지. Figma 「splash」를 5배로 잘라 배경(`#FABD7E`)을 투명하게 뺀 PNG (로고·로딩줄·저작권) |
+| `assets/images/icon.png`           | 앱 아이콘(iOS·기본). Figma 앱 아이콘의 32x32 픽셀 그림을 칸당 32px로 키운 1024px PNG                  |
+| `assets/images/android-icon-*.png` | Android 적응형 아이콘 전경·단색. 같은 그림을 108dp 캔버스 가운데 64dp로 두고, 배경은 `#FABD7E` 색     |
 
 ## 웹 → 앱 메시지
 
