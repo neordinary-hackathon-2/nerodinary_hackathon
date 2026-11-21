@@ -7,7 +7,7 @@
 ```bash
 pnpm install
 cp .env.example .env.local   # DB 접속 정보 수정
-pnpm db:push                 # 스키마를 로컬 DB에 반영
+pnpm db:migrate              # 테이블 생성 및 0~9번 채널 초기 시딩
 pnpm start:dev
 ```
 
@@ -22,6 +22,7 @@ pnpm start:dev
 | `pnpm lint` / `pnpm format` | 린트 / 포맷 |
 | `pnpm test:e2e` | 공통 응답·예외 규약, Swagger 문서 생성 테스트 |
 | `pnpm db:push` | 스키마를 로컬 DB에 바로 반영 (개발 중) |
+| `pnpm db:migrate` | 초기 테이블과 0~9번 채널 시드를 마이그레이션으로 적용 |
 | `pnpm db:generate` | 스키마 변경을 마이그레이션 SQL로 생성 (`drizzle/`) |
 | `pnpm db:studio` | DB 조회 화면 |
 
@@ -165,7 +166,7 @@ type _Check = AssertNoMismatch<EntityMismatch<typeof contents.$inferSelect, Cont
 
 스키마를 바꿨을 때:
 
-1. `pnpm db:push` — 로컬 DB에 바로 반영해서 개발
+1. 새 DB는 `pnpm db:migrate`로 초기 테이블과 채널 데이터를 생성한다. 이후 개발 중에는 `pnpm db:push`로 스키마를 바로 반영할 수 있다.
 2. `pnpm db:generate` — PR 올리기 전에 실행하고 `drizzle/` 폴더를 함께 커밋
 
 운영 DB에는 서버가 시작할 때 `drizzle/`의 마이그레이션이 자동 적용된다(`DB_MIGRATE_ON_START=true`).
