@@ -2,9 +2,11 @@
 
 import ChannelGuide from '@/components/ChannelGuide';
 import Header from '@/components/Header';
+import ModalOverlay from '@/components/ModalOverlay';
 import PixelTv from '@/components/PixelTv';
 import Remote from '@/components/Remote';
 import TvPlayer from '@/components/TvPlayer';
+import VolumeNotice from '@/components/VolumeNotice';
 import useChannels from '@/hooks/useChannels';
 import useTvRemote from '@/hooks/useTvRemote';
 
@@ -17,6 +19,7 @@ const HomeScreen = () => {
     video,
     volume,
     isGuideOpen,
+    isVolumeNoticeOpen,
     togglePower,
     goToNextChannel,
     goToPreviousChannel,
@@ -27,6 +30,7 @@ const HomeScreen = () => {
     skipFailedVideo,
     openGuide,
     closeGuide,
+    closeVolumeNotice,
   } = useTvRemote();
   const guide = useChannels(isGuideOpen);
 
@@ -84,25 +88,19 @@ const HomeScreen = () => {
         <div className="mt-4 flex justify-center">{remote}</div>
       )}
       {isGuideOpen && (
-        // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
-        // z-10: TV 화면(유튜브 iframe)보다 위에 그려야 영상까지 어둡게 덮인다.
-        // fixed: PC에서도 화면 컬럼이 아닌 창 전체를 덮고, PC 시안처럼 카드를 세로 가운데에 둔다.
-        <div className="fixed inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px] lg:items-center lg:pt-0">
-          <button
-            type="button"
-            aria-label="편성표 닫기"
-            className="absolute inset-0 cursor-default"
-            onClick={closeGuide}
+        <ModalOverlay closeLabel="편성표 닫기" onClose={closeGuide}>
+          <ChannelGuide
+            channels={guide.channels}
+            isPending={guide.isPending}
+            isError={guide.isError}
+            onClose={closeGuide}
           />
-          <div className="relative h-fit">
-            <ChannelGuide
-              channels={guide.channels}
-              isPending={guide.isPending}
-              isError={guide.isError}
-              onClose={closeGuide}
-            />
-          </div>
-        </div>
+        </ModalOverlay>
+      )}
+      {isVolumeNoticeOpen && (
+        <ModalOverlay closeLabel="음량 안내 닫기" onClose={closeVolumeNotice}>
+          <VolumeNotice onClose={closeVolumeNotice} />
+        </ModalOverlay>
       )}
     </main>
   );
