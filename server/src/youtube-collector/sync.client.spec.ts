@@ -85,10 +85,51 @@ describe('createSyncClient', () => {
     });
   });
 
-  it('서버가 오류를 돌려주면 상태 코드를 담아 던진다', async () => {
-    const fetchFn: FetchLike = () => Promise.resolve(envelope(null, 401));
+  it('서버가 오류를 돌려주면 상태 코드와 봉투의 code·message 를 담아 던진다', async () => {
+    const fetchFn: FetchLike = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            isSuccess: false,
+            code: 'CHANNEL404',
+            message: '채널을 찾을 수 없습니다.',
+            result: null,
+          }),
+          { status: 404 },
+        ),
+      );
 
-    await expect(client(fetchFn).fetchChannels()).rejects.toThrow('401');
+    await expect(client(fetchFn).fetchChannels()).rejects.toThrow(
+      '서버 /internal/youtube/seed-config 호출 실패 (404) — CHANNEL404 / 채널을 찾을 수 없습니다.',
+    );
+  });
+
+  it('검증 실패(400)의 필드 오류도 메시지에 담는다', async () => {
+    const fetchFn: FetchLike = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            isSuccess: false,
+            code: 'COMMON400',
+            message: '요청 값이 올바르지 않습니다.',
+            result: [
+              { field: 'channelNumber', reasons: ['1 이상이어야 합니다'] },
+            ],
+          }),
+          { status: 400 },
+        ),
+      );
+
+    await expect(client(fetchFn).fetchChannels()).rejects.toThrow(
+      'channelNumber: 1 이상이어야 합니다',
+    );
+  });
+
+  it('오류 본문이 JSON 이 아니어도 상태 코드는 담아 던진다', async () => {
+    const fetchFn: FetchLike = () =>
+      Promise.resolve(new Response('Bad Gateway', { status: 502 }));
+
+    await expect(client(fetchFn).fetchChannels()).rejects.toThrow('(502)');
   });
 
   it('계약과 다른 응답은 조용히 넘기지 않는다', async () => {

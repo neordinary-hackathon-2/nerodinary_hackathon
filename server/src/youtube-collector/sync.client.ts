@@ -32,6 +32,41 @@ function unwrap(body: unknown): unknown {
     : body;
 }
 
+/**
+ * 실패 응답 봉투에서 code·message·검증 필드 오류를 뽑아 한 줄로 만든다.
+ * GitHub Actions 로그만으로 원인을 알 수 있어야 한다. 본문이 JSON 이 아니면 빈 문자열.
+ */
+async function describeFailure(response: Response): Promise<string> {
+  const body: unknown = await response.json().catch(() => null);
+  if (typeof body !== 'object' || body === null) {
+    return '';
+  }
+  const envelope = body as {
+    code?: unknown;
+    message?: unknown;
+    result?: unknown;
+  };
+  const parts: string[] = [];
+  if (typeof envelope.code === 'string') {
+    parts.push(envelope.code);
+  }
+  if (typeof envelope.message === 'string') {
+    parts.push(envelope.message);
+  }
+  // 검증 실패(COMMON400)의 result 는 [{ field, reasons }] 다.
+  if (Array.isArray(envelope.result)) {
+    for (const item of envelope.result as {
+      field?: unknown;
+      reasons?: unknown;
+    }[]) {
+      if (typeof item?.field === 'string' && Array.isArray(item.reasons)) {
+        parts.push(`${item.field}: ${item.reasons.join(', ')}`);
+      }
+    }
+  }
+  return parts.length > 0 ? ` — ${parts.join(' / ')}` : '';
+}
+
 export function createSyncClient(options: SyncClientOptions): CollectorServer {
   const fetchFn = options.fetchFn ?? fetch;
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -46,7 +81,9 @@ export function createSyncClient(options: SyncClientOptions): CollectorServer {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!response.ok) {
-      throw new Error(`서버 ${path} 호출 실패 (${response.status})`);
+      throw new Error(
+        `서버 ${path} 호출 실패 (${response.status})${await describeFailure(response)}`,
+      );
     }
     return unwrap(await response.json().catch(() => null));
   }

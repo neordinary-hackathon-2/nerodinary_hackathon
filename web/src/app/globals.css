@@ -8,6 +8,7 @@
   --color-peach-400: #fabd7e;
   --color-butter-300: #ffdc8c;
   --color-cream-100: #ffedc5;
+  --color-peach-100: #fee0bb;
   --color-white: #ffffff;
   --color-olive-*: initial;
   --color-olive-100: #d7d3ab;
@@ -28,8 +29,44 @@
   --color-text-brand: var(--color-brown-700);
   --color-text-muted: var(--color-brown-500);
   --color-text-on-inverse: var(--color-cream-100);
+  --color-text-soft: #917f6c;
   --color-border-strong: var(--color-ink-900);
+  --color-border-subtle: #efe6da;
   --color-shadow-hard: var(--color-ink-900);
+
+  --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
+  --shadow-key: 0 4px 0 var(--color-shadow-hard);
+  --shadow-key-sm: 0 3px 0 var(--color-shadow-hard);
+  --shadow-key-md: 0 3.387px 0 var(--color-shadow-hard);
+  --shadow-key-pressed: 0 1px 0 var(--color-shadow-hard);
+  --shadow-rocker-up: 0 8px 0 var(--color-shadow-hard);
+  --shadow-rocker-down: 0 -8px 0 var(--color-shadow-hard);
+
+  --drop-shadow-remote: 7.649px 7.649px 0 var(--color-shadow-hard);
+
+  --container-mobile: 402px;
+
+  --color-colorbar-1: #ffffff;
+  --color-colorbar-2: #ffff01;
+  --color-colorbar-3: #08f6fe;
+  --color-colorbar-4: #00ff01;
+  --color-colorbar-5: #fc01ff;
+  --color-colorbar-6: #fa0707;
+  --color-colorbar-7: #011afd;
+  --color-colorbar-8: #060608;
+
+  --shadow-tv-led: 0 3px 0 var(--color-olive-700);
+
+  --animate-tv-progress: tv-progress 2.2s steps(11, jump-none) infinite;
+
+  @keyframes tv-progress {
+    from {
+      width: 0;
+    }
+    to {
+      width: 150px;
+    }
+  }
 }
 
 :root {
@@ -59,4 +96,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@utility tv-screen-mask {
+  mask-image: url('/tv/screen-mask.svg');
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
 }

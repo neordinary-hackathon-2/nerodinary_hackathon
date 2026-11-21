@@ -1,70 +1,104 @@
-import Image from 'next/image';
+'use client';
+
+import ChannelGuide from '@/components/ChannelGuide';
+import Header from '@/components/Header';
+import PixelTv from '@/components/PixelTv';
+import Remote from '@/components/Remote';
+import TvPlayer from '@/components/TvPlayer';
+import useChannels from '@/hooks/useChannels';
+import useTvRemote from '@/hooks/useTvRemote';
 
 const HomeScreen = () => {
+  const {
+    isPowerOn,
+    screen,
+    channelLabel,
+    video,
+    volume,
+    isGuideOpen,
+    togglePower,
+    goToNextChannel,
+    goToPreviousChannel,
+    goToChannel,
+    refreshVideo,
+    volumeUp,
+    volumeDown,
+    skipFailedVideo,
+    openGuide,
+    closeGuide,
+  } = useTvRemote();
+  const guide = useChannels(isGuideOpen);
+
+  const remote = (
+    <Remote
+      size={isPowerOn ? 'default' : 'big'}
+      isPowerOn={isPowerOn}
+      onClickPower={togglePower}
+      onClickVolumeUp={volumeUp}
+      onClickVolumeDown={volumeDown}
+      onClickChannelUp={goToNextChannel}
+      onClickChannelDown={goToPreviousChannel}
+      onClickRefresh={refreshVideo}
+      onClickGuide={openGuide}
+      onClickNumber={goToChannel}
+    />
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{' '}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              src/screens/HomeScreen.tsx
-            </code>{' '}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{' '}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
+      <Header isLive={screen === 'live'} />
+      <div className="mt-6 px-5">
+        <PixelTv screen={screen} channelLabel={channelLabel}>
+          {screen === 'live' && video && (
+            <TvPlayer
+              key={video.youtubeVideoId}
+              youtubeVideoId={video.youtubeVideoId}
+              volume={volume}
+              onError={skipFailedVideo}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          )}
+        </PixelTv>
+      </div>
+      {isPowerOn ? (
+        <div className="mt-4 flex justify-center">{remote}</div>
+      ) : (
+        // Figma home/default: 꺼진 TV 아래 "TURN ON !" 안내와 전원 버튼을 가리키는 화살표, 큰 리모컨.
+        <div className="mt-[37px] flex flex-col">
+          <p className="ml-[43px] font-silkscreen text-[20px] leading-none font-bold text-text-muted">
+            TURN ON !
+          </p>
+          <div
+            aria-hidden
+            className="mt-[11px] ml-[97px] flex w-6 flex-col items-center"
           >
-            Documentation
-          </a>
+            <span className="h-1 w-6 bg-text-muted" />
+            <span className="h-1 w-4 bg-text-muted" />
+            <span className="h-1 w-2 bg-text-muted" />
+          </div>
+          <div className="mt-[9px] ml-[60px]">{remote}</div>
         </div>
-      </main>
-    </div>
+      )}
+      {isGuideOpen && (
+        // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
+        // z-10: TV 화면(유튜브 iframe)보다 위에 그려야 영상까지 어둡게 덮인다.
+        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px]">
+          <button
+            type="button"
+            aria-label="편성표 닫기"
+            className="absolute inset-0 cursor-default"
+            onClick={closeGuide}
+          />
+          <div className="relative h-fit">
+            <ChannelGuide
+              channels={guide.channels}
+              isPending={guide.isPending}
+              isError={guide.isError}
+              onClose={closeGuide}
+            />
+          </div>
+        </div>
+      )}
+    </main>
   );
 };
 

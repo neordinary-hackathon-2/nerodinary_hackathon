@@ -8,7 +8,7 @@ name: YouTube Collect
 #              SEED_TOKEN        (서버 내부 API 토큰. X-Seed-Token 헤더로 보낸다)
 #   Variables: SYNC_API_BASE_URL (예: https://<서버 주소>/api)
 #
-# 서버의 내부 API(/internal/youtube/*)가 배포되기 전에는 dry_run 으로만 실행한다.
+# 매일 05:00 KST 에 예약 실행된다. 수동 실행은 dry_run 기본값이 true 다.
 
 on:
   workflow_dispatch:
@@ -21,9 +21,9 @@ on:
         description: 이 채널 번호(1~9)만 처리한다 (비우면 전체)
         type: string
         required: false
-  # 서버 내부 API 가 배포되면 주석을 풀어 매일 한 번 실행한다. (20:00 UTC = 05:00 KST)
-  # schedule:
-  #   - cron: '0 20 * * *'
+  # 매일 한 번 실제 동기화로 실행한다. (20:00 UTC = 05:00 KST)
+  schedule:
+    - cron: '0 20 * * *'
 
 permissions:
   contents: read

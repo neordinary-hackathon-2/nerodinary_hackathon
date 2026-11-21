@@ -135,7 +135,7 @@ function describe(error: unknown): string {
  * 3. 채널마다 최근 공개된 영상을 정해진 수만큼 새로 찾는다(교체). 그래도 목표 개수에
  *    모자라면 모자란 만큼 공개 시각을 가리지 않고 더 찾는다.
  * 4. 채널별로 결과를 서버에 보낸다. 한 채널이 실패해도 나머지는 계속한다.
- *    목표 개수를 넘는 만큼은 서버가 저장된 지 오래된 영상부터 지운다.
+ *    목표 개수를 넘는 만큼은 서버가 last_refreshed_at이 오래된 영상부터 지운다.
  */
 export async function runCollector(
   deps: CollectorDeps,
@@ -332,7 +332,7 @@ export async function runCollector(
 
   for (const plan of plans) {
     plan.report.added = plan.added.length;
-    // 목표 개수를 넘는 만큼은 서버가 오래된 영상부터 지운다.
+    // 목표 개수를 넘는 만큼은 서버가 마지막 재확인 시각이 오래된 영상부터 지운다.
     const total = plan.aliveCount + plan.added.length;
     plan.report.evicted = Math.max(0, total - options.targetPerChannel);
     plan.report.storedAfter = total - plan.report.evicted;

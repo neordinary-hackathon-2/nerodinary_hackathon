@@ -16,7 +16,6 @@ export const channels = mysqlTable(
     channelNumber: tinyint({ unsigned: true }).notNull(),
     name: varchar({ length: 50 }).notNull(),
     slogan: varchar({ length: 150 }).notNull(),
-    role: varchar({ length: 200 }),
     seedKeywords: json().$type<string[]>().notNull(),
     ...timestamps,
   },

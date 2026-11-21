@@ -58,7 +58,7 @@ export class YoutubeSyncService {
   /**
    * 한 채널의 영상을 저장·갱신하고, 재생할 수 없게 된 영상을 지운다.
    * 저장 조건(공개·임베드·길이)은 수집기가 걸렀더라도 여기서 다시 확인한다.
-   * 그 뒤 채널당 유지 개수를 넘는 만큼, 저장된 지 오래된 영상부터 지운다.
+   * 그 뒤 채널당 유지 개수를 넘는 만큼, 마지막으로 재확인한 지 오래된 영상부터 지운다.
    */
   async sync(request: YoutubeSyncRequestDto): Promise<YoutubeSyncResultDto> {
     const [channel] = await this.db
@@ -78,30 +78,16 @@ export class YoutubeSyncService {
     const now = new Date();
 
     const evictedCount = await this.db.transaction(async (tx) => {
-      // videos 에는 (채널, 영상) 중복을 막는 DB 제약이 없다. 같은 영상이 여러 채널에 들어갈 수 있고,
-      // 한 채널 안의 중복은 여기서 "이미 있으면 갱신, 없으면 추가"로 막는다.
-      const existingIds =
-        accepted.length === 0
-          ? new Set<string>()
-          : new Set(
-              (
-                await tx
-                  .select({ youtubeVideoId: videos.youtubeVideoId })
-                  .from(videos)
-                  .where(
-                    and(
-                      eq(videos.appChannelId, channel.id),
-                      inArray(
-                        videos.youtubeVideoId,
-                        accepted.map((video) => video.youtubeVideoId),
-                      ),
-                    ),
-                  )
-              ).map((row) => row.youtubeVideoId),
-            );
-
-      const toInsert: (typeof videos.$inferInsert)[] = [];
-      for (const video of accepted) {
+      // videos 에는 (app_channel_id, youtube_video_id) 복합 유니크 제약이 있다(11.22 결정).
+      // 같은 영상이 여러 채널에 들어갈 수 있고, 한 채널 안의 중복은 DB가 막는다.
+      // "있으면 갱신, 없으면 추가"는 ON DUPLICATE KEY UPDATE 로 원자적으로 처리해
+      // 동시 요청이 와도 유니크 위반으로 트랜잭션이 깨지지 않는다.
+      // 영상 ID 순으로 잠그면 동시 트랜잭션이 서로 반대 순서로 기다리는 교착을 피한다.
+      // (축출까지 포함한 채널 단위 직렬화는 수집 워크플로의 concurrency 가 맡는다.)
+      const ordered = [...accepted].sort((a, b) =>
+        a.youtubeVideoId < b.youtubeVideoId ? -1 : 1,
+      );
+      for (const video of ordered) {
         const metadata = {
           title: video.title,
           thumbnailUrl: video.thumbnailUrl,
@@ -111,26 +97,14 @@ export class YoutubeSyncService {
           sourceChannelTitle: video.sourceChannelTitle ?? null,
           lastRefreshedAt: now,
         };
-        if (existingIds.has(video.youtubeVideoId)) {
-          await tx
-            .update(videos)
-            .set(metadata)
-            .where(
-              and(
-                eq(videos.appChannelId, channel.id),
-                eq(videos.youtubeVideoId, video.youtubeVideoId),
-              ),
-            );
-        } else {
-          toInsert.push({
+        await tx
+          .insert(videos)
+          .values({
             appChannelId: channel.id,
             youtubeVideoId: video.youtubeVideoId,
             ...metadata,
-          });
-        }
-      }
-      if (toInsert.length > 0) {
-        await tx.insert(videos).values(toInsert);
+          })
+          .onDuplicateKeyUpdate({ set: metadata });
       }
 
       if (removedVideoIds.length > 0) {
@@ -155,12 +129,17 @@ export class YoutubeSyncService {
       if (excess <= 0) {
         return 0;
       }
-      // createdAt 은 초 단위라 한 요청으로 들어온 영상끼리 같다. id 로 순서를 가른다.
+      // 재확인한 지 오래된 순으로 정리한다. lastRefreshedAt 이 없는 행은 먼저 지우고,
+      // 시각이 같으면 createdAt 과 id 로 순서를 결정한다.
       const oldest = await tx
         .select({ id: videos.id })
         .from(videos)
         .where(eq(videos.appChannelId, channel.id))
-        .orderBy(asc(videos.createdAt), asc(videos.id))
+        .orderBy(
+          asc(videos.lastRefreshedAt),
+          asc(videos.createdAt),
+          asc(videos.id),
+        )
         .limit(excess);
       await tx.delete(videos).where(
         inArray(
