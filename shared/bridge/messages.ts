@@ -18,8 +18,14 @@ export const appFeedbackSchema = z.enum([
 
 export type AppFeedback = z.infer<typeof appFeedbackSchema>;
 
+/** 리모컨 볼륨 버튼. 앱은 기기 시스템 볼륨을 한 단계 올리거나 내린다. */
+export const appVolumeDirectionSchema = z.enum(['up', 'down']);
+
+export type AppVolumeDirection = z.infer<typeof appVolumeDirectionSchema>;
+
 export const bridgeMessageSchema = z.discriminatedUnion('type', [
   z.object({type: z.literal('feedback'), feedback: appFeedbackSchema}),
+  z.object({type: z.literal('volume'), direction: appVolumeDirectionSchema}),
 ]);
 
 export type BridgeMessage = z.infer<typeof bridgeMessageSchema>;
