@@ -35,7 +35,7 @@ seed_keywords는 ["예능 클립", "웃긴 모음"]처럼 JSON 배열로 저장�
 |---|---|---|---|
 | id | BIGINT PK | 필수 | 내부 식별자입니다. |
 | app_channel_id | BIGINT FK → channels.id | 필수 | 영상이 속한 서비스 채널입니다. |
-| youtube_video_id | VARCHAR(32), UNIQUE | 필수 | YouTube 영상 ID. 중복 방지와 플레이어 URL 생성에 사용합니다. |
+| youtube_video_id | VARCHAR(32), (app_channel_id, youtube_video_id) 복합 UNIQUE | 필수 | YouTube 영상 ID. 중복 방지와 플레이어 URL 생성에 사용합니다. |
 | title | VARCHAR(255) | 필수 | YouTube 영상 제목입니다. |
 | thumbnail_url | VARCHAR(1000) | 필수 | YouTube API가 준 썸네일 주소입니다. 이미지 파일은 저장하지 않습니다. |
 | duration_seconds | INT UNSIGNED | 필수 | 정확한 영상 길이입니다. 600–7,200초 후보를 선별합니다. |
@@ -50,20 +50,20 @@ seed_keywords는 ["예능 클립", "웃긴 모음"]처럼 JSON 배열로 저장�
 ## 4. 저장·조회 규칙
 
 1. YouTube videos.list로 길이 600–7,200초, 공개 상태, 임베드 허용 여부를 확인한 뒤 조건을 통과한 영상만 저장합니다. 임베드 불가 영상은 저장하지 않습니다.
-2. youtube_video_id를 기준으로 중복 없이 저장·갱신합니다. 같은 영상이 다시 검색돼도 행을 추가하지 않습니다.
+2. (app_channel_id, youtube_video_id)를 기준으로 채널 안에서 중복 없이 저장·갱신합니다. 같은 영상이 다른 서비스 채널에서도 검색되면 채널별 행으로 각각 저장합니다.
 3. 하루 한 번 수집할 때 기존 후보를 전부 지우지 않습니다. 기획의 채널당 8–10개는 초기 시드 수이며, DB 최대 보유 개수는 아직 정하지 않았습니다. 새 영상의 누적·교체 기준은 별도로 결정합니다.
 4. 저장된 영상도 재검증합니다. 검색 결과에 다시 안 나왔다는 이유만으로 삭제하지 않습니다. 영상 삭제·비공개·임베드 불가 등 재생 조건을 잃은 것이 확인되면 해당 행만 제거하고 보충합니다. 수집 작업 자체가 실패하면 기존 후보를 유지합니다.
-5. 전체 채널 랜덤 영상 API는 채널별 후보 중 중복 없이 최대 10개를 반환합니다. 0번은 videos가 빈 배열입니다. videos(app_channel_id) 인덱스를 두고, channels.channel_number와 videos.youtube_video_id에는 고유 제약을 둡니다.
+5. 전체 채널 랜덤 영상 API는 채널별 후보 중 중복 없이 최대 10개를 반환합니다. 0번은 videos가 빈 배열입니다. videos(app_channel_id) 인덱스를 두고, channels.channel_number와 (videos.app_channel_id, videos.youtube_video_id)에 고유 제약을 둡니다.
 
 ## 5. 구현 시 체크리스트
 
 - [ ] 신규 후보는 videos.list의 정확한 길이·공개 상태·status.embeddable을 확인한 뒤에만 저장한다.
 - [ ] status.embeddable이 false인 후보는 DB에 넣지 않는다. 서비스 자체의 노출 플래그도 두지 않는다.
 - [ ] 기존 영상의 YouTube 상태가 바뀌면 해당 영상만 제거하고, API 호출 실패만으로 후보를 삭제하지 않는다.
-- [ ] youtube_video_id 고유 제약으로 재수집 중복을 막는다. 초기 시드 8–10개와 별개로, 장기 보유 개수·교체 기준은 구현 전에 결정한다.
+- [ ] (app_channel_id, youtube_video_id) 복합 고유 제약으로 같은 채널 안의 재수집 중복을 막는다. 초기 시드 8–10개와 별개로, 장기 보유 개수·교체 기준은 구현 전에 결정한다.
 - [ ] API에서 임베드 가능으로 확인된 영상도 실제 플레이어에서 실패할 수 있으므로 프론트 재생 오류 처리를 둔다.
 
-youtube_video_id의 고유 제약은 한 YouTube 영상이 앱 채널 하나에만 속한다는 가정에 맞습니다. 같은 영상을 여러 서비스 채널에 편성해야 한다면 영상 원본 테이블과 채널 연결 테이블을 분리해 검토합니다.
+같은 YouTube 영상 ID는 서비스 채널마다 각각 저장할 수 있습니다. 각 채널 안에서는 같은 영상 ID가 중복 저장되지 않도록 app_channel_id와 youtube_video_id에 복합 고유 제약을 둡니다.
 
 ## 6. 구현 상태
 
