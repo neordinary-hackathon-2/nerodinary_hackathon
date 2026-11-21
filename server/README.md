@@ -25,6 +25,27 @@ pnpm start:dev
 | `pnpm db:generate` | 스키마 변경을 마이그레이션 SQL로 생성 (`drizzle/`) |
 | `pnpm db:studio` | DB 조회 화면 |
 
+## 프론트엔드 연동 (배포 서버)
+
+FE(web·app)는 아래 배포 서버로 HTTPS 요청한다. 인증서는 Let's Encrypt(자동 갱신)이고, `sslip.io`는 고정 IP(`54.116.233.6`)를 그대로 가리키는 DNS다.
+
+| 용도 | 주소 |
+|---|---|
+| API 베이스 | `https://54-116-233-6.sslip.io/api` |
+| Swagger (API 문서) | `https://54-116-233-6.sslip.io/docs` |
+| 헬스체크 | `https://54-116-233-6.sslip.io/api/health` |
+
+```bash
+# 연결 확인
+curl https://54-116-233-6.sslip.io/api/health
+# → { "isSuccess": true, "result": { "status": "UP", "database": "UP", ... } }
+```
+
+- FE 환경변수 예: `VITE_API_BASE_URL=https://54-116-233-6.sslip.io/api` (또는 `NEXT_PUBLIC_API_BASE_URL`).
+- 모든 엔드포인트는 `/api` 프리픽스 아래에 있다. 응답 봉투(`isSuccess`/`code`/`message`/`result`)는 [응답 규약](#응답-규약) 참고.
+- **CORS**: 허용 오리진은 서버의 `CORS_ORIGINS`로 정한다(쉼표 구분). 현재는 `*`(모든 오리진 허용)로 열려 있어 Vercel 미리보기·로컬에서 바로 호출된다. 쿠키 기반 인증은 켜져 있지 않으므로(`credentials` 미사용) 인증은 헤더 토큰 방식으로 보낸다. Vercel 운영 주소가 확정되면 그 주소로 좁힌다.
+- IP가 바뀌면(해커톤 장소 이동 등) 도메인도 `<새-IP를-하이픈으로>.sslip.io`로 바뀐다. 그때 FE 베이스 URL도 함께 교체한다.
+
 ## 구조
 
 ```
@@ -166,10 +187,3 @@ type _Check = AssertNoMismatch<EntityMismatch<typeof contents.$inferSelect, Cont
 - 워크플로(레포 루트): [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml) (필요한 Secrets/Variables는 파일 상단 주석)
 - 인스턴스 최초 세팅: [deploy/lightsail-setup.sh](deploy/lightsail-setup.sh)
 - HTTPS: [deploy/Caddyfile](deploy/Caddyfile)
-
-인프라를 만들 때 확인할 것:
-
-- Lightsail 방화벽은 80, 443만 연다. 22번은 배포 워크플로가 배포 중에만 러너 IP로 열었다 닫는다.
-- Lightsail 계정 설정에서 VPC 피어링을 켜고, RDS는 같은 리전의 기본 VPC에 퍼블릭 액세스 없이 만든다.
-- RDS 보안그룹은 3306을 Lightsail 쪽 사설 대역에서만 허용한다.
-- 서버의 `~/app/.env.production`에 `DB_MIGRATE_ON_START=true`, `CORS_ORIGINS=<Vercel 주소>`를 넣는다.
