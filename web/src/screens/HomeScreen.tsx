@@ -12,6 +12,7 @@ import useTvRemote from '@/hooks/useTvRemote';
 const HomeScreen = () => {
   const {
     isPowerOn,
+    isPoweringOff,
     isOnboarding,
     screen,
     channelLabel,
@@ -55,7 +56,11 @@ const HomeScreen = () => {
         <div
           className={`mt-[45px] px-5 ${isOnboarding ? 'lg:mt-[117px]' : 'lg:mt-[98px]'}`}
         >
-          <PixelTv screen={screen} channelLabel={channelLabel}>
+          <PixelTv
+            screen={screen}
+            channelLabel={channelLabel}
+            isPoweringOff={isPoweringOff}
+          >
             {screen === 'live' && video && (
               <TvPlayer
                 key={video.youtubeVideoId}
