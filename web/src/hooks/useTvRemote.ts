@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import type {AppVolumeDirection, RandomChannelVideosDto} from '@shared';
 
 import {
   COLOR_BAR_CHANNEL_NUMBER,
+  CRT_DURATION_MS,
   START_CHANNEL_NUMBER,
   VOLUME_STEP,
 } from '@/constants/tv';
@@ -58,6 +59,8 @@ const useTvRemote = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   // 이번 접속에서 전원을 한 번이라도 켰는지. 켜기 전까지만 "TURN ON !" 온보딩을 보여준다.
   const [hasPoweredOn, setHasPoweredOn] = useState(false);
+  // 전원을 끄는 CRT 연출 중. 연출이 끝나면 전원이 꺼진다.
+  const [isPoweringOff, setIsPoweringOff] = useState(false);
   const [channelNumber, setChannelNumber] = useState(START_CHANNEL_NUMBER);
   // 채널별로 처음 들어갈 때 뽑은 0~1 난수. 영상 목록에서의 위치를 정한다.
   const [videoPicks, setVideoPicks] = useState<Record<number, number>>({});
@@ -106,9 +109,24 @@ const useTvRemote = () => {
     );
   };
 
-  const togglePower = () => {
-    if (isPowerOn) {
+  useEffect(() => {
+    if (!isPoweringOff) {
+      return;
+    }
+    const timer = setTimeout(() => {
       setIsPowerOn(false);
+      setIsPoweringOff(false);
+    }, CRT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isPoweringOff]);
+
+  const togglePower = () => {
+    // 끄는 연출 중에 다시 누르면 무시한다.
+    if (isPoweringOff) {
+      return;
+    }
+    if (isPowerOn) {
+      setIsPoweringOff(true);
       setIsGuideOpen(false);
       postToApp({type: 'feedback', feedback: 'powerOff'});
       return;
@@ -198,6 +216,7 @@ const useTvRemote = () => {
 
   return {
     isPowerOn,
+    isPoweringOff,
     isOnboarding: !hasPoweredOn,
     screen,
     channelLabel,
