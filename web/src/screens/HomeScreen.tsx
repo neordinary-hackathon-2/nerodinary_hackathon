@@ -3,6 +3,7 @@
 import ChannelGuide from '@/components/ChannelGuide';
 import FigmaFrame from '@/components/FigmaFrame';
 import Header from '@/components/Header';
+import ModalOverlay from '@/components/ModalOverlay';
 import PixelTv from '@/components/PixelTv';
 import Remote from '@/components/Remote';
 import TvPlayer from '@/components/TvPlayer';
@@ -51,87 +52,70 @@ const HomeScreen = () => {
   );
 
   return (
-    <FigmaFrame>
-      {/* PC(lg)는 1280px 프레임 가운데에 모바일 컬럼(402px)을 둔다. */}
-      <div className="mx-auto flex w-mobile flex-col *:shrink-0">
-        <Header isLive={screen === 'live'} />
-        {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(온보딩 117px, 그 밖 98px)에 맞춘다. */}
-        <div
-          className={`mt-[45px] px-5 ${isOnboarding ? 'lg:mt-[117px]' : 'lg:mt-[98px]'}`}
-        >
-          <PixelTv
-            screen={screen}
-            channelLabel={channelLabel}
-            isPoweringOff={isPoweringOff}
+    <>
+      <FigmaFrame>
+        {/* PC(lg)는 1280px 프레임 가운데에 모바일 컬럼(402px)을 둔다. */}
+        <div className="mx-auto flex w-mobile flex-col *:shrink-0">
+          <Header isLive={screen === 'live'} />
+          {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(온보딩 117px, 그 밖 98px)에 맞춘다. */}
+          <div
+            className={`mt-[45px] px-5 ${isOnboarding ? 'lg:mt-[117px]' : 'lg:mt-[98px]'}`}
           >
-            {screen === 'live' && video && (
-              <TvPlayer
-                key={video.youtubeVideoId}
-                youtubeVideoId={video.youtubeVideoId}
-                thumbnailUrl={video.thumbnailUrl}
-                volume={volume}
-                onError={skipFailedVideo}
-              />
-            )}
-          </PixelTv>
-        </div>
-        {isOnboarding ? (
-          // Figma home/default: 처음 접속해 꺼진 TV 아래 "TURN ON !" 안내와 전원 버튼을 가리키는 화살표, 큰 리모컨.
-          // 한 번 켠 뒤에는 꺼도 다시 보이지 않는다.
-          <div className="mt-[37px] flex flex-col">
-            <p className="ml-[43px] font-silkscreen text-[20px] leading-none font-bold text-text-muted">
-              TURN ON !
-            </p>
-            <div
-              aria-hidden
-              className="mt-[11px] ml-[97px] flex w-6 flex-col items-center"
+            <PixelTv
+              screen={screen}
+              channelLabel={channelLabel}
+              isPoweringOff={isPoweringOff}
             >
-              <span className="h-1 w-6 bg-text-muted" />
-              <span className="h-1 w-4 bg-text-muted" />
-              <span className="h-1 w-2 bg-text-muted" />
+              {screen === 'live' && video && (
+                <TvPlayer
+                  key={video.youtubeVideoId}
+                  youtubeVideoId={video.youtubeVideoId}
+                  thumbnailUrl={video.thumbnailUrl}
+                  volume={volume}
+                  onError={skipFailedVideo}
+                />
+              )}
+            </PixelTv>
+          </div>
+          {isOnboarding ? (
+            // Figma home/default: 처음 접속해 꺼진 TV 아래 "TURN ON !" 안내와 전원 버튼을 가리키는 화살표, 큰 리모컨.
+            // 한 번 켠 뒤에는 꺼도 다시 보이지 않는다.
+            <div className="mt-[37px] flex flex-col">
+              <p className="ml-[43px] font-silkscreen text-[20px] leading-none font-bold text-text-muted">
+                TURN ON !
+              </p>
+              <div
+                aria-hidden
+                className="mt-[11px] ml-[97px] flex w-6 flex-col items-center"
+              >
+                <span className="h-1 w-6 bg-text-muted" />
+                <span className="h-1 w-4 bg-text-muted" />
+                <span className="h-1 w-2 bg-text-muted" />
+              </div>
+              <div className="mt-[9px] ml-[60px]">{remote}</div>
             </div>
-            <div className="mt-[9px] ml-[60px]">{remote}</div>
-          </div>
-        ) : (
-          <div className="mt-4 flex justify-center">{remote}</div>
-        )}
-      </div>
-      {isGuideOpen && (
-        // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
-        // z-10: TV 화면(유튜브 iframe)보다 위에 그려야 영상까지 어둡게 덮인다.
-        // absolute: 시안처럼 프레임 전체를 덮고, PC 시안처럼 카드를 세로 가운데에 둔다.
-        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px] lg:items-center lg:pt-0">
-          <button
-            type="button"
-            aria-label="편성표 닫기"
-            className="absolute inset-0 cursor-default"
-            onClick={closeGuide}
-          />
-          <div className="relative h-fit">
-            <ChannelGuide
-              channels={guide.channels}
-              isPending={guide.isPending}
-              isError={guide.isError}
-              onClose={closeGuide}
-            />
-          </div>
+          ) : (
+            <div className="mt-4 flex justify-center">{remote}</div>
+          )}
         </div>
+      </FigmaFrame>
+      {/* 팝업은 어두운 배경이 창 전체를 덮어야 해서 FigmaFrame 밖에 둔다(ModalOverlay 주석 참고). */}
+      {isGuideOpen && (
+        <ModalOverlay closeLabel="편성표 닫기" onClose={closeGuide}>
+          <ChannelGuide
+            channels={guide.channels}
+            isPending={guide.isPending}
+            isError={guide.isError}
+            onClose={closeGuide}
+          />
+        </ModalOverlay>
       )}
       {isVolumeNoticeOpen && (
-        // 편성표와 같은 어두운 배경 위 음량 안내 카드. 카드 밖을 눌러도 닫힌다.
-        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px] lg:items-center lg:pt-0">
-          <button
-            type="button"
-            aria-label="음량 안내 닫기"
-            className="absolute inset-0 cursor-default"
-            onClick={closeVolumeNotice}
-          />
-          <div className="relative h-fit">
-            <VolumeNotice onClose={closeVolumeNotice} />
-          </div>
-        </div>
+        <ModalOverlay closeLabel="음량 안내 닫기" onClose={closeVolumeNotice}>
+          <VolumeNotice onClose={closeVolumeNotice} />
+        </ModalOverlay>
       )}
-    </FigmaFrame>
+    </>
   );
 };
 
