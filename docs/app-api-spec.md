@@ -1,10 +1,10 @@
-# 앱 API 명세 제안
+# 앱 API 명세
 
-프론트·백엔드·기획이 함께 참고할 서비스 API 계약입니다. 공개 조회 API는 구현돼 있고, 내부 수집 API는 설계 제안입니다. YouTube가 제공하는 API 자체는 [YouTube Data API 연동 스펙](youtube-data-api.md)을 참고합니다.
+프론트·백엔드·기획이 함께 참고할 서비스 API 계약입니다. 공개 조회 API와 GitHub Actions용 내부 수집 API가 구현돼 있습니다. YouTube가 제공하는 API 자체는 [YouTube Data API 연동 스펙](youtube-data-api.md)을 참고합니다.
 
 ## 1. 공통 규칙
 
-이 절은 현재 서버에 구현된 공통 기반과 콘텐츠 API 계약을 설명합니다. 공개 상태 확인 경로는 `/api/health`입니다. 채널 목록과 전체 채널 랜덤 영상 API가 구현돼 있습니다. 내부 YouTube 수집 API는 설계만 있고 아직 구현하지 않았습니다.
+이 절은 현재 서버에 구현된 공통 기반과 콘텐츠 API 계약을 설명합니다. 공개 상태 확인 경로는 `/api/health`입니다. 채널 목록·전체 채널 랜덤 영상 API와 내부 YouTube 수집 API가 구현돼 있습니다.
 
 예정된 콘텐츠 수집·조회 흐름:
 
@@ -12,7 +12,7 @@
     GitHub Actions → YouTube Data API → 내부 API → NestJS → RDS
 
 - 서버 전역 경로 prefix는 `/api`이며, 현재 버전에서는 `v1` 경로를 두지 않습니다.
-- 공개 콘텐츠 API는 로그인 없이 호출합니다. 내부 수집 API는 `/api/internal` 아래에 두고 `X-Seed-Token`으로 보호하는 것을 제안하지만, 현재 서버에는 아직 구현하지 않았습니다. `internal` 경로 자체는 인증 수단이 아닙니다.
+- 공개 콘텐츠 API는 로그인 없이 호출합니다. 내부 수집 API는 `/api/internal` 아래에 있으며 `X-Seed-Token`으로 보호합니다. `internal` 경로 자체는 인증 수단이 아닙니다.
 - NestJS의 성공·오류 응답은 전역 인터셉터와 예외 필터를 통해 다음 봉투로 반환합니다. 타입 정의는 `shared/api/envelope.ts`에 있습니다.
 
 | 응답 필드 | 타입 | 의미 |
@@ -26,7 +26,7 @@
 
 ### GET /api/channels — 채널 목록 조회 (F1)
 
-채널 번호, 카테고리명, 슬로건을 번호순으로 반환합니다. F1에서 채널 정보를 로딩하고 F9 편성표 팝업을 표시할 때 사용합니다. 0번 컬러바도 목록에 포함하며, 이 채널에는 영상 후보가 없습니다. DB 내부 ID는 노출하지 않습니다.
+채널 번호, 카테고리명, 슬로건을 번호순으로 반환합니다. F1에서 채널 정보를 로딩하고 F9 편성표 팝업을 표시할 때 사용합니다. 랜덤 영상 API에는 이름과 슬로건이 없으므로 채널 메타데이터는 이 API에서 받습니다. 0번 컬러바도 목록에 포함하며, 이 채널에는 영상 후보가 없습니다. DB 내부 ID는 노출하지 않습니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
@@ -114,11 +114,11 @@ videos가 빈 배열인 경우는 채널 자체는 있지만 DB에 저장된 재
 
 ## 3. GitHub Actions용 내부 API
 
-X-Seed-Token은 GitHub Secrets와 서버 비밀 설정에 둡니다. YouTube API 키와 별개이며 프론트에는 노출하지 않습니다.
+X-Seed-Token은 GitHub Secrets와 서버 비밀 설정에 둡니다. YouTube API 키와 별개이며 프론트에는 노출하지 않습니다. 두 엔드포인트 모두 현재 구현되어 GitHub Actions 수집기가 사용합니다.
 
-### GET /api/internal/youtube/seed-config — 검색어 조회 (선택)
+### GET /api/internal/youtube/seed-config — 수집 설정 조회
 
-검색어를 DB에서 관리할 때만 구현합니다. 저장소 설정 파일을 단일 원본으로 쓰면 생략합니다.
+채널별 검색어와 이미 저장된 영상 ID를 반환합니다. 수집기는 검색어를 사용해 후보를 찾고, 저장된 ID를 재검증·중복 방지에 사용합니다. 0번 컬러바를 포함해 등록된 채널을 반환합니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
@@ -126,6 +126,7 @@ X-Seed-Token은 GitHub Secrets와 서버 비밀 설정에 둡니다. YouTube API
 | 요청 | Query/Body | 없음 | 전체 채널 검색어 조회 |
 | 응답 | result.channels[].channelNumber | number, 필수 | 서비스 채널 번호(0~9) |
 | 응답 | result.channels[].seedKeywords[] | string 배열, 필수 | 채널별 검색어 |
+| 응답 | result.channels[].storedVideoIds[] | string 배열, 필수 | 해당 채널에 현재 저장된 YouTube 영상 ID 목록. 채널에 저장 영상이 없으면 빈 배열 |
 
     {
       "isSuccess": true,
@@ -133,14 +134,14 @@ X-Seed-Token은 GitHub Secrets와 서버 비밀 설정에 둡니다. YouTube API
       "message": "요청에 성공했습니다.",
       "result": {
         "channels": [
-          {"channelNumber": 1, "seedKeywords": ["예능 클립", "웃긴 모음"]}
+          {"channelNumber": 1, "seedKeywords": ["예능 클립", "웃긴 모음"], "storedVideoIds": ["YOUTUBE_VIDEO_ID"]}
         ]
       }
     }
 
 ### POST /api/internal/youtube/sync — 영상 후보 저장·갱신
 
-Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보냅니다. 이 upsert 요청은 HTTP 200 응답으로 제안합니다. NestJS 구현 시 기본 POST 상태 201을 200으로 명시해야 합니다.
+Actions가 YouTube Data API에서 검색·검증한 후보와 재검증에서 제거할 영상을 채널별로 보냅니다. 이 API는 HTTP 200을 반환합니다. `videos`가 빈 배열이어도 유효하므로 삭제 대상만 보내는 요청도 가능합니다.
 
 필수 여부는 DB 컬럼의 NULL 가능 여부만으로 정하지 않습니다. 내부 호출 인증, DB 채널 FK를 찾는 값, 저장에 꼭 필요한 메타데이터, 저장 자격 검증값을 필수로 둡니다. 화면·저장에 당장 필요하지 않고 DB에서도 NULL을 허용하는 메타데이터는 선택입니다. DB 내부 ID와 생성·수정 시각은 서버가 만들므로 요청에 받지 않습니다.
 
@@ -148,7 +149,7 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
 |---|---|---|---|
 | 요청 Header | X-Seed-Token | string, 필수 | 내부 호출 인증 |
 | 요청 Body | channelNumber | number, 필수 | 영상 수집 대상 채널 번호(1~9). 0번 컬러바는 수집하지 않음 |
-| 요청 Body | videos | 배열(1개 이상), 필수 | 해당 채널의 후보 목록. 보낼 후보가 없으면 이 API 호출을 생략 |
+| 요청 Body | videos | 배열(0개 이상), 필수 | 새 후보와 갱신할 기존 후보. 빈 배열을 허용하며 삭제 대상만 보낼 수 있음 |
 | 요청 Body | videos[].youtubeVideoId | string, 필수 | YouTube 영상 ID. 중복 갱신 기준 |
 | 요청 Body | videos[].title | string, 필수 | 영상 제목 |
 | 요청 Body | videos[].thumbnailUrl | string, 필수 | YouTube 썸네일 주소 |
@@ -158,10 +159,12 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
 | 요청 Body | videos[].sourceChannelTitle | string, 선택 | 원본 제작자 채널명 |
 | 요청 Body | videos[].privacyStatus | string, 필수 | public이 아니면 해당 후보를 제외. DB에는 보관하지 않음 |
 | 요청 Body | videos[].isEmbeddable | boolean, 필수 | false이면 해당 후보를 제외. DB에는 보관하지 않음 |
+| 요청 Body | removedVideoIds | string 배열, 선택 | 삭제·비공개·임베드 불가 등으로 이 채널에서 제거할 영상 ID. 다른 채널에 저장된 같은 영상에는 영향 없음 |
 | 응답 | result.acceptedCount | number, 필수 | 저장·갱신한 후보 수 |
 | 응답 | result.rejectedCount | number, 필수 | 검증에서 제외한 후보 수 |
 | 응답 | result.rejected[].youtubeVideoId | string, 제외 시 | 제외 영상 ID |
 | 응답 | result.rejected[].reason | string, 제외 시 | 제외 이유 |
+| 응답 | result.evictedCount | number, 필수 | 채널당 보유 상한을 초과해 서버가 오래된 순서로 삭제한 영상 수 |
 
 요청 예:
 
@@ -177,7 +180,8 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
         "sourceChannelTitle": "원본 제작자 채널명",
         "privacyStatus": "public",
         "isEmbeddable": true
-      }]
+      }],
+      "removedVideoIds": []
     }
 
 응답 예:
@@ -186,18 +190,18 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
       "isSuccess": true,
       "code": "COMMON200",
       "message": "요청에 성공했습니다.",
-      "result": {"acceptedCount": 1, "rejectedCount": 0, "rejected": []}
+      "result": {"acceptedCount": 1, "rejectedCount": 0, "rejected": [], "evictedCount": 0}
     }
 
-서버는 길이 600–7,200초, 공개·임베드 조건을 확인하고 통과한 영상만 저장합니다. 하루 수집 때 기존 영상을 전부 삭제하지 않으며, 같은 youtubeVideoId는 중복 행 대신 갱신합니다. 기획의 채널당 8–10개는 초기 시드 수입니다. 장기 보유 개수와 교체 기준은 아직 정하지 않았습니다.
+서버는 길이 600–7,200초, 공개·임베드 조건을 확인하고 통과한 영상만 저장합니다. 같은 YouTube 영상을 같은 채널에 다시 보내면 중복 행을 만들지 않고 메타데이터와 `lastRefreshedAt`을 갱신합니다. 같은 영상은 다른 채널에도 별도로 저장할 수 있습니다. 서버는 채널당 최대 100개를 유지하며, 수집기가 하루 최대 10개의 최근 후보를 보내면 초과분을 `lastRefreshedAt`, `createdAt`, ID 순으로 오래된 것부터 제거합니다. 삭제·비공개·임베드 불가가 확인된 영상은 `removedVideoIds`로 해당 채널에서 제거합니다. 자세한 교체 정책은 [결정 문서 0005](../server/docs/decisions/0005-youtube-daily-rotation.md)를 참고합니다.
 
 ## 4. 오류와 구현 상태
 
 | HTTP 상태 | 상황 |
 |---|---|
 | 400 | 요청 값 또는 형식이 잘못됨 |
-| 401/403 | 내부 토큰 누락·불일치 (내부 API 구현 시 적용 예정) |
+| 401 | 내부 API의 `X-Seed-Token` 누락 또는 불일치 |
 | 404 | 요청 경로가 없음 |
 | 500 | 예상하지 못한 서버 오류 |
 
-채널 목록과 전체 채널 랜덤 영상 API는 구현돼 있습니다. GitHub Actions용 내부 API는 이 문서의 설계 제안이며 현재 구현 범위에 포함되지 않습니다. DB 필드와 저장 규칙은 [콘텐츠 DB 구조 제안](content-db-schema.md)을 참고합니다.
+공개 API와 GitHub Actions용 내부 API가 모두 구현돼 있습니다. 잘못된 sync 본문은 400, 토큰 누락·불일치는 401, 없는 수집 채널은 404, 예상하지 못한 서버 오류는 500으로 공통 응답 봉투를 반환합니다. DB 필드와 저장 규칙은 [콘텐츠 DB 구조 제안](content-db-schema.md)을 참고합니다.
