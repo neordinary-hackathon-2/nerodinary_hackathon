@@ -19,7 +19,7 @@ Ne(o)rdinary Hackathon 서버 파트의 AWS 인프라 구성도입니다. 인프
 
 ```bash
 cd server/docs
-npx @resvg/resvg-js-cli infra-architecture.svg -o infra-architecture.png --width 3440
+npx @resvg/resvg-js-cli --fit-width 3440 infra-architecture.svg infra-architecture.png
 ```
 
 또는 브라우저에서 `infra-architecture.svg` 를 열어 캡처해도 됩니다.
@@ -31,4 +31,4 @@ npx @resvg/resvg-js-cli infra-architecture.svg -o infra-architecture.png --width
 - **DB 포트 외부 비노출** — RDS 퍼블릭 액세스 없음, 3306은 Lightsail 사설 IP /32 만 허용
 - **불필요한 포트 비공개(방화벽)** — 80·443만 공개, 3000 비공개, SSH 22는 관리자/배포 시 한시 개방
 - **CI/CD 자동화** — GitHub Actions: verify(lint·build·test) → deploy → `/api/health` 확인
-- **민감정보 관리** — DB 비밀번호는 `~/app/.env.production`(권한 600), AWS·SSH 키는 GitHub Secrets
+- **민감정보 관리** — DB 비밀번호·내부 API 토큰·AWS 키·SSH 키 모두 GitHub Secrets. 배포 때 `~/app/.env.production`(권한 600)으로 주입 ([결정 0004](decisions/0004-production-env-from-github-secrets.md))
