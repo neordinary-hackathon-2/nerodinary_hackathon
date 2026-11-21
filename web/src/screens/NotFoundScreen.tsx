@@ -5,9 +5,9 @@ import PixelTv from '@/components/PixelTv';
 
 const NotFoundScreen = () => {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
+    <main className="mx-auto flex h-dvh w-full max-w-mobile flex-col overflow-clip *:shrink-0">
       <Header isLive={false} />
-      <div className="mt-6 px-5">
+      <div className="mt-[45px] px-5 lg:mt-[98px]">
         <PixelTv screen="noSignal" channelLabel="CH --" />
       </div>
       <div className="mt-8 flex flex-col items-center gap-4 px-5">
