@@ -8,6 +8,8 @@ interface RemoteButtonProps {
   type: RemoteButtonType;
   label?: string;
   className?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 }
 
 const KEY_COLOR =
@@ -49,12 +51,17 @@ const RemoteButton = ({
   type,
   label,
   className = 'relative',
+  disabled = false,
+  onClick,
 }: RemoteButtonProps) => {
   return (
     <button
       type="button"
       aria-label={buttonName[type]}
-      className={`group shrink-0 overflow-hidden border-3 border-solid ${buttonClassName[type]} ${className}`}
+      disabled={disabled}
+      onClick={onClick}
+      // 비활성 버튼은 hover·눌림 모양도 바뀌지 않게 포인터 이벤트를 받지 않는다.
+      className={`group shrink-0 overflow-hidden border-3 border-solid disabled:pointer-events-none ${buttonClassName[type]} ${className}`}
     >
       {renderContent[type](label)}
     </button>
