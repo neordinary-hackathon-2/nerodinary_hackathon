@@ -1,15 +1,14 @@
 CREATE TABLE `channels` (
 	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`code` varchar(10) NOT NULL,
+	`channel_number` tinyint unsigned NOT NULL,
 	`name` varchar(50) NOT NULL,
-	`slogan` varchar(150),
+	`slogan` varchar(150) NOT NULL,
 	`role` varchar(200),
-	`display_order` tinyint unsigned NOT NULL,
 	`seed_keywords` json NOT NULL,
 	`created_at` timestamp NOT NULL DEFAULT (now()),
 	`updated_at` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `channels_id` PRIMARY KEY(`id`),
-	CONSTRAINT `channels_code_uq` UNIQUE(`code`)
+	CONSTRAINT `channels_channel_number_uq` UNIQUE(`channel_number`)
 );
 --> statement-breakpoint
 CREATE TABLE `videos` (
