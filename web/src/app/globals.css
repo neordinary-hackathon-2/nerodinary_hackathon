@@ -8,6 +8,7 @@
   --color-peach-400: #fabd7e;
   --color-butter-300: #ffdc8c;
   --color-cream-100: #ffedc5;
+  --color-peach-100: #fee0bb;
   --color-white: #ffffff;
   --color-olive-*: initial;
   --color-olive-100: #d7d3ab;
@@ -32,6 +33,11 @@
   --color-shadow-hard: var(--color-ink-900);
 
   --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
+  --shadow-key: 0 4px 0 var(--color-shadow-hard);
+  --shadow-key-sm: 0 3px 0 var(--color-shadow-hard);
+  --shadow-key-pressed: 0 1px 0 var(--color-shadow-hard);
+
+  --drop-shadow-remote: 7.649px 7.649px 0 var(--color-shadow-hard);
 
   --container-mobile: 402px;
 }
