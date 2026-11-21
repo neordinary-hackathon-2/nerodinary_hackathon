@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import OnAirBadge from './OnAirBadge';
 
 interface HeaderProps {
@@ -6,11 +8,13 @@ interface HeaderProps {
 
 const Header = ({isLive}: HeaderProps) => {
   return (
-    <header className="flex flex-col items-start gap-2 px-5 pt-2">
-      <h1 className="font-press-start text-[28px] leading-[28px] whitespace-nowrap text-text-brand">
-        BAPSONGGUK
+    <header className="flex items-start gap-4 px-5 pt-2">
+      <h1>
+        <Image src="/logo/logo.svg" width={90} height={47} alt="밥송국" />
       </h1>
-      <OnAirBadge isLive={isLive} />
+      <div className="mt-[15px]">
+        <OnAirBadge isLive={isLive} />
+      </div>
     </header>
   );
 };

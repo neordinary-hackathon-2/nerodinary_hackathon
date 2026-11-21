@@ -7,7 +7,7 @@ const NotFoundScreen = () => {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
       <Header isLive={false} />
-      <div className="mt-6 px-5">
+      <div className="mt-[45px] px-5">
         <PixelTv screen="noSignal" channelLabel="CH --" />
       </div>
       <div className="mt-8 flex flex-col items-center gap-4 px-5">
