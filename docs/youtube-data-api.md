@@ -3,7 +3,7 @@
 프론트엔드와 백엔드가 함께 참고할 YouTube 영상 검색·검증·저장·재생 가이드입니다.
 
 - 작성 기준: 2026-11-21
-- 대상 기획: CH05 예능, CH07 금융, CH09 뉴스 등 7개 서비스 가상 채널과 채널별 8–10개 영상 후보
+- 대상 기획: 0번 컬러바와 1~9번 카테고리 채널. 0번은 영상이 없고 수집하지 않으며, YouTube 수집 대상은 1~9번입니다.
 - 원칙: YouTube 페이지를 HTML로 스크래핑하지 않고 YouTube Data API와 공식 임베드 플레이어를 사용합니다.
 - 용어: 이 문서의 채널은 앱의 가상 채널을 뜻합니다. YouTube 영상의 실제 업로더는 원본 제작자 채널이라고 부릅니다.
 
@@ -17,7 +17,7 @@
       → NestJS가 RDS에 중복 없이 upsert
 
     웹 프론트
-      → 앱 API에서 채널 목록/랜덤 영상 조회
+      → 앱 API에서 전체 채널의 랜덤 영상 목록 조회
       → youtubeVideoId로 YouTube iframe 플레이어 구성
 
 GitHub Actions는 YouTube API 키와 내부 동기화 토큰을 GitHub Secrets에 보관합니다. Actions가 RDS에 직접 접속하지 않습니다.
@@ -32,7 +32,7 @@ GitHub Actions는 YouTube API 키와 내부 동기화 토큰을 GitHub Secrets�
 |---|---|---|
 | `part` | 응답에 어떤 종류의 정보를 넣을지 고르는 요청 옵션입니다. API가 반환하는 전체 객체 중 필요한 큰 묶음을 지정합니다. | `videos.list`의 `part=snippet,contentDetails,status`는 표시 정보, 재생시간 정보, 공개·임베드 상태를 요청합니다. |
 | `snippet` | 제목·설명·게시 시각·썸네일·원본 채널처럼 기본 설명 정보가 모인 JSON 객체입니다. 객체는 `{}` 안에 이름과 값이 묶여 있는 데이터 구조이며 DB 엔티티나 별도 API를 뜻하지 않습니다. | 아래 예시처럼 `snippet.title`은 `snippet` 객체 안의 `title` 값을 가리킵니다. |
-| `contentDetails` | 재생시간이나 자막 여부처럼 콘텐츠의 세부 속성이 모인 객체입니다. | `contentDetails.duration`이 `PT3M42S`이면 3분 42초입니다. |
+| `contentDetails` | 재생시간이나 자막 여부처럼 콘텐츠의 세부 속성이 모인 객체입니다. | `contentDetails.duration`이 `PT15M`이면 15분입니다. |
 | `status` | 영상 공개 범위나 임베드 허용 여부처럼 상태 정보가 모인 객체입니다. | `status.embeddable=true`는 외부 웹페이지 플레이어에 삽입하는 것이 허용된 상태를 나타냅니다. |
 | 임베드(Embed) | YouTube 영상 페이지로 이동하지 않고, 우리 웹페이지 안에 YouTube 플레이어를 넣어 재생하는 방식입니다. | 프론트가 `https://www.youtube.com/embed/{videoId}` 형태의 iframe을 표시합니다. |
 | YouTube 공식 카테고리 | YouTube가 영상에 붙이는 자체 분류 체계입니다. 앱의 예능·금융·뉴스 서비스 채널 분류와는 별개입니다. | 필요할 때 `videoCategories.list`로 국가별 분류 목록을 조회합니다. |
@@ -75,10 +75,20 @@ GitHub Actions는 YouTube API 키와 내부 동기화 토큰을 GitHub Secrets�
 | relevanceLanguage | 권장 | ko | 한국어와 관련된 결과를 우선합니다. |
 | videoEmbeddable | 권장 | true | 웹페이지에 임베드할 수 있는 후보를 우선합니다. |
 | videoSyndicated | 권장 | true | YouTube 외부에서도 재생할 수 있는 후보를 우선합니다. |
-| videoDuration | 조건부 | short 또는 medium | 3–10분 후보를 위해 두 구간을 각각 검색한 뒤 상세 조회로 거릅니다. |
+| videoDuration | 조건부 | medium 또는 long | 10분~2시간 후보를 위해 두 구간을 각각 검색한 뒤 상세 조회에서 600–7,200초만 남깁니다. |
 | maxResults | 선택 | 50 | 한 페이지에서 받을 후보 수입니다. 최대 50입니다. |
-| pageToken | 선택 | nextPageToken 값 | 다음 페이지 후보가 더 필요할 때 사용합니다. 호출량도 추가됩니다. |
+| pageToken | 선택 | nextPageToken 값 | 다음 페이지를 가져올 때 사용합니다. 페이지를 요청할 때마다 search.list 호출 한 번으로 계산합니다. |
 | key | API 키 사용 시 필수 | YOUR_API_KEY | Google Cloud에서 발급한 YouTube Data API 키입니다. 서버나 Actions 비밀 설정에 둡니다. |
+
+위 예시는 `videoDuration=medium` 호출입니다. 같은 검색 조건으로 `videoDuration=long`도 별도 호출합니다.
+
+#### 검색 호출량·페이지 상한
+
+YouTube의 현재 기본 할당량은 `search.list` 전용 버킷에서 하루 100회이며, 요청 한 번의 비용은 1유닛입니다. `pageToken`으로 다음 페이지를 요청해도 별도 `search.list` 호출로 계산됩니다. 다른 Data API 메서드에는 별도로 하루 10,000유닛의 기본 할당량이 적용됩니다. 최신 할당량은 [공식 할당량 안내](https://developers.google.com/youtube/data/determine_quota_cost)에서 확인합니다.
+
+- 서비스 채널별 `search.list` 호출 상한을 둡니다. 다음 페이지 요청도 상한에 포함하며, 상한 수치는 서버에서 확정합니다.
+- 상한에 도달하면 더 페이지를 넘기지 않고 그때까지 모은 후보로 검증·저장을 진행합니다.
+- 할당량 초과나 일시적 수집 실패 때는 기존의 마지막 정상 후보를 유지합니다.
 
 #### 응답 필드
 
@@ -88,7 +98,7 @@ GitHub Actions는 YouTube API 키와 내부 동기화 토큰을 GitHub Secrets�
 | items[].snippet.title | 영상 제목 | 영상 카드나 플레이어 제목에 표시합니다. |
 | items[].snippet.description | 영상 설명 | 상세 설명이 필요할 때 사용합니다. 현재 MVP에서는 선택 사항입니다. |
 | items[].snippet.publishedAt | 2026-11-20T12:00:00Z | YouTube에 공개된 시각입니다. 최신 후보 우선 정렬에 사용할 수 있습니다. |
-| items[].snippet.channelId | UC_CREATOR_CHANNEL_ID | 원본 제작자 채널 ID입니다. 앱의 CH05 같은 서비스 채널 ID와 다릅니다. |
+| items[].snippet.channelId | UC_CREATOR_CHANNEL_ID | 원본 제작자 채널 ID입니다. 앱의 1~9번 서비스 채널 번호와는 다른 값입니다. |
 | items[].snippet.channelTitle | 원본 제작자 채널명 | 화면에 제작자명을 표시할 때 사용합니다. |
 | items[].snippet.thumbnails.medium.url | https://i.ytimg.com/... | 중간 크기 썸네일 주소입니다. 카드·선택 연출에서 사용합니다. 이미지 파일 자체는 저장하지 않습니다. |
 | items[].snippet.thumbnails.medium.width / height | 320 / 180 | 썸네일 표시 크기 정보입니다. |
@@ -124,7 +134,7 @@ GitHub Actions는 YouTube API 키와 내부 동기화 토큰을 GitHub Secrets�
       "nextPageToken": "..."
     }
 
-snippet.channelId는 YouTube 원본 제작자 채널 ID입니다. 앱의 CH05 같은 서비스 채널 ID와 다릅니다. 검색만으로 영상의 정확한 길이와 최종 재생 가능 여부를 판정하지 않습니다.
+snippet.channelId는 YouTube 원본 제작자 채널 ID입니다. 앱의 1~9번 서비스 채널 번호와 다릅니다. 검색만으로 영상의 정확한 길이와 최종 재생 가능 여부를 판정하지 않습니다.
 
 ### 2.2 videos.list — 재생시간·임베드 상태 확인
 
@@ -184,18 +194,18 @@ search.list에서 받은 ID로 상세 정보를 요청합니다. 한 번에 최�
 | items[].snippet.channelId | UC_CREATOR_CHANNEL_ID | 원본 제작자 채널 ID입니다. |
 | items[].snippet.channelTitle | 원본 제작자 채널명 | 제작자 정보를 보여줄 때 사용합니다. |
 | items[].snippet.thumbnails.medium.url | https://i.ytimg.com/... | API가 반환한 썸네일 URL입니다. |
-| items[].contentDetails.duration | PT3M42S | ISO 8601 재생시간입니다. 초로 변환해 180–600초 범위인지 확인합니다. |
+| items[].contentDetails.duration | PT15M | ISO 8601 재생시간입니다. 초로 변환해 600–7,200초 범위인지 확인합니다. |
 | items[].contentDetails.caption | true 또는 false | 자막 제공 여부입니다. 현재 MVP 재생에는 선택 정보입니다. |
 | items[].status.embeddable | true 또는 false | iframe 임베드 허용 상태입니다. true여도 실제 재생은 별도 오류가 날 수 있습니다. |
 | items[].status.privacyStatus | public 등 | 영상 공개 상태입니다. 공개 후보 검증에 사용합니다. |
 
-contentDetails.duration는 ISO 8601 기간 문자열입니다. 예를 들어 PT3M42S는 222초입니다. 이를 초로 변환해 180–600초인 후보만 남깁니다. status.embeddable도 확인하되, API에서 임베드 가능하다고 나와도 권리 주장이나 정책에 따라 실제 재생이 막힐 수 있으므로 프론트에 재생 오류 처리가 필요합니다.
+contentDetails.duration는 ISO 8601 기간 문자열입니다. 예를 들어 PT15M은 900초입니다. 이를 초로 변환해 600–7,200초(10분~2시간)인 후보만 남깁니다. `medium`은 4~20분, `long`은 20분 초과 구간이므로 두 구간에서 검색한 뒤 상세 조회에서 상한 2시간을 적용합니다. `long`에는 2시간을 초과하는 영상도 포함됩니다. `status.embeddable`도 확인하되, API에서 임베드 가능하다고 나와도 권리 주장이나 정책에 따라 실제 재생이 막힐 수 있으므로 프론트에 재생 오류 처리가 필요합니다.
 
 여기서 **임베드 가능 여부 확인**은 영상을 서버가 직접 재생해 보는 검사가 아닙니다. `videos.list` 응답의 `status.embeddable` 값을 확인해 외부 웹페이지 플레이어 사용이 허용된 영상인지 거르는 단계입니다. 검색 요청의 `videoEmbeddable=true`도 후보를 미리 좁히는 필터이고, 상세 조회의 `status.embeddable`은 받은 영상의 상태를 확인하는 값입니다. 둘 다 통과해도 영상 삭제·지역 제한·권리 설정 등으로 실제 재생이 실패할 수 있으므로 프론트는 플레이어 오류를 처리해야 합니다.
 
-### 2.3 선택 API — 특정 제작자 채널을 관리할 때
+### 2.3 MVP 제외 API — 참고용
 
-현재 MVP의 키워드 수집은 `search.list` + `videos.list`가 중심입니다. 아래 API는 특정 제작자를 직접 등록하거나 YouTube 공식 분류를 참고하기로 할 때만 추가합니다.
+현재 MVP 수집에는 `search.list`와 `videos.list`만 사용합니다. 아래 `channels.list`, `playlistItems.list`, `videoCategories.list`는 향후 특정 제작자 목록을 관리하거나 YouTube 공식 분류를 활용할 때 참고할 API이며 MVP 범위에서는 호출하지 않습니다.
 
 #### `channels.list` — 제작자 채널 정보 조회
 
@@ -252,9 +262,9 @@ contentDetails.duration는 ISO 8601 기간 문자열입니다. 예를 들어 PT3
 | 응답 | items[].snippet.title | 응답 시 | 게임·음악 등 YouTube 공식 분류명입니다. |
 | 응답 | items[].snippet.assignable | 응답 시 | 영상에 해당 카테고리를 지정할 수 있는지 나타냅니다. |
 
-이 응답은 YouTube 자체 분류이므로 앱의 CH05 예능·CH07 금융과 같은 서비스 채널을 만들거나 분류하지 않습니다.
+이 응답은 YouTube 자체 분류이므로 앱의 1~9번 서비스 채널을 만들거나 분류하지 않습니다.
 
-예를 들어 YouTube의 공식 분류에는 음악·게임·뉴스/정치처럼 **YouTube 전체에서 사용하는 콘텐츠 주제**가 있습니다. `videoCategories.list`는 이 분류들의 ID와 이름, 해당 지역에서 영상에 지정 가능한지(`assignable`)를 돌려줍니다. 이를 조회하는 것만으로 우리 앱의 카테고리가 자동 생성되거나, 예능 채널에 맞는 클립이 자동으로 선별되는 것은 아닙니다. 현재 기획에서 앱 카테고리는 직접 정한 CH05·CH07 같은 서비스 채널이므로 이 API는 필수 기능이 아닙니다. 나중에 YouTube 공식 분류 ID로 후보 검색을 더 좁히려는 경우에만 참고할 수 있습니다.
+예를 들어 YouTube의 공식 분류에는 음악·게임·뉴스/정치처럼 **YouTube 전체에서 사용하는 콘텐츠 주제**가 있습니다. `videoCategories.list`는 이 분류들의 ID와 이름, 해당 지역에서 영상에 지정 가능한지(`assignable`)를 돌려줍니다. 이를 조회하는 것만으로 우리 앱의 카테고리가 자동 생성되거나, 특정 서비스 채널에 맞는 영상이 자동 선별되는 것은 아닙니다. 현재 MVP에서는 이 API를 사용하지 않습니다.
 
 
 ## 3. 검색어 관리 및 수집 처리
@@ -276,16 +286,16 @@ contentDetails.duration는 ISO 8601 기간 문자열입니다. 예를 들어 PT3
 
 ### 수집 단계
 
-1. 채널 코드와 검색어를 읽습니다.
-2. 채널별로 short, medium 후보를 검색합니다.
+1. 수집 대상인 1~9번 채널과 검색어를 읽습니다. 0번 컬러바는 영상이 없으므로 제외합니다.
+2. 채널별로 `videoDuration=medium`과 `videoDuration=long` 후보를 각각 검색합니다. 채널별 `search.list` 요청은 페이지 호출을 포함해 정해진 상한을 넘기지 않습니다.
 3. search.list 응답의 영상 ID를 모읍니다.
 4. ID를 최대 50개씩 묶어 videos.list로 상세 정보를 요청합니다.
-5. 길이 180–600초, 임베드 가능, 서비스 채널의 기획 방향에 맞는 후보인지 필터링합니다.
+5. 길이 600–7,200초, 공개 상태, 임베드 가능 여부와 서비스 채널의 기획 방향을 확인해 후보를 필터링합니다.
 6. youtubeVideoId 고유값 기준으로 upsert합니다.
 7. 유효한 응답이 완성되기 전에 기존 후보 전체를 지우지 않습니다. 수집 실패 시 마지막 정상 후보를 유지합니다.
-8. 하루 한 번 기존 활성 영상도 재검증하고 lastRefreshedAt을 갱신합니다. 조회되지 않거나 재생 조건을 충족하지 못하는 후보는 비활성화합니다.
+8. 기존 영상도 하루 한 번 재검증하고 lastRefreshedAt을 갱신합니다. 삭제·비공개·임베드 불가가 확인된 영상은 행을 삭제합니다. 일시적 API 오류나 검색 결과에 다시 나타나지 않았다는 이유만으로 기존 행을 삭제하지 않습니다.
 
-자동 키워드 검색만으로 “밥 먹으며 보기 좋은지”, “엉뚱하게 재미있는지”를 판별하기는 어렵습니다. 초기에는 후보를 직접 검수해 채널당 8–10개를 넣고, 자동 수집은 후보 보충 수단으로 사용하는 편이 안정적입니다.
+일일 수집 목표는 크롤링 10개와 DB 100개 적재입니다. 1~9번 채널별 배분은 미확정이며, 크롤링 10개의 단위(검색 요청 또는 영상 후보)와 적재 100개의 기준(누적 또는 일일 신규)은 서버·기획에서 확정해야 합니다. 중복 영상은 youtubeVideoId 기준으로 갱신합니다. 임베드 불가 영상은 저장하지 않으며 DB에는 서비스 노출용 `is_active` 플래그를 두지 않습니다.
 
 ## 4. 프론트에서 영상 재생 및 썸네일 표시
 
