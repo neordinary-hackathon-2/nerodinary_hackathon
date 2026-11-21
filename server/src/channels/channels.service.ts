@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { asc, eq, sql } from 'drizzle-orm';
-import type { RandomVideosResultDto } from '../../../shared/index.js';
+import type {
+  ChannelListResultDto,
+  RandomVideosResultDto,
+} from '../../../shared/index.js';
 import type { Database } from '../database/database.types.js';
 import { channels } from '../database/schema/channel.schema.js';
 import { videos } from '../database/schema/video.schema.js';
@@ -9,6 +12,19 @@ import { videos } from '../database/schema/video.schema.js';
 @Injectable()
 export class ChannelsService {
   constructor(@InjectDrizzle() private readonly db: Database) {}
+
+  async getChannels(): Promise<ChannelListResultDto> {
+    const channelRows = await this.db
+      .select({
+        channelNumber: channels.channelNumber,
+        name: channels.name,
+        slogan: channels.slogan,
+      })
+      .from(channels)
+      .orderBy(asc(channels.channelNumber));
+
+    return {channels: channelRows};
+  }
 
   async getRandomVideos(): Promise<RandomVideosResultDto> {
     const channelRows = await this.db

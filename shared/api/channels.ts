@@ -16,8 +16,8 @@ export type ChannelListItemDto = z.infer<typeof channelListItemDtoSchema>;
 
 export const channelListResultSchema = z
   .object({
-    channels: z.array(channelListItemDtoSchema).length(10).meta({
-      description: '0번 컬러바와 1~9번 카테고리 채널을 번호순으로 반환합니다.',
+    channels: z.array(channelListItemDtoSchema).max(10).meta({
+      description: '등록된 0~9번 채널을 번호순으로 반환합니다. 시딩 전에는 빈 배열입니다.',
     }),
   })
   .meta({id: 'ChannelListResultDto'});
