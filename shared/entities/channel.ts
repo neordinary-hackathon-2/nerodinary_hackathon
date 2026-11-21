@@ -4,7 +4,7 @@ import {z} from 'zod';
 export const channelSchema = z
   .object({
     id: z.number().int().positive().meta({example: 1}),
-    channelNumber: z.number().int().min(0).max(9).meta({example: 1}),
+    channelNumber: z.number().int().min(1).max(9).meta({example: 1}),
     name: z.string().min(1).max(50).meta({example: '예능'}),
     slogan: z.string().min(1).max(150).meta({example: '웃다 체하지 마세요'}),
     createdAt: z.string().meta({example: '2026-11-21T08:00:00.000Z'}),

@@ -16,8 +16,8 @@ export type ChannelListItemDto = z.infer<typeof channelListItemDtoSchema>;
 
 export const channelListResultSchema = z
   .object({
-    channels: z.array(channelListItemDtoSchema).max(10).meta({
-      description: '등록된 0~9번 채널을 번호순으로 반환합니다. 시딩 전에는 빈 배열입니다.',
+    channels: z.array(channelListItemDtoSchema).max(9).meta({
+      description: '등록된 1~9번 채널을 번호순으로 반환합니다. 시딩 전에는 빈 배열입니다.',
     }),
   })
   .meta({id: 'ChannelListResultDto'});
@@ -46,7 +46,9 @@ export type RandomChannelVideosDto = z.infer<typeof randomChannelVideosDtoSchema
 /** GET /api/channels/random-videos 의 result. */
 export const randomVideosResultSchema = z
   .object({
-    channels: z.array(randomChannelVideosDtoSchema),
+    channels: z.array(randomChannelVideosDtoSchema).max(9).meta({
+      description: '1~9번 전체 채널을 번호순으로 반환합니다.',
+    }),
   })
   .meta({id: 'RandomVideosResultDto'});
 

@@ -352,7 +352,7 @@ describe('runCollector', () => {
   it('검색어가 없는 채널은 검색하지 않는다', async () => {
     const youtube = fakeYoutube({});
     const { server, synced } = fakeServer([
-      channel({ channelNumber: 0, seedKeywords: [] }),
+      channel({ channelNumber: 1, seedKeywords: [] }),
     ]);
 
     const report = await runCollector(
