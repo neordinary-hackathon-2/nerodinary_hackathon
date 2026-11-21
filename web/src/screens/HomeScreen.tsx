@@ -45,7 +45,7 @@ const HomeScreen = () => {
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-mobile flex-col">
+    <main className="mx-auto flex h-dvh w-full max-w-mobile flex-col overflow-clip *:shrink-0">
       <Header isLive={screen === 'live'} />
       {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(꺼짐 117px, 켜짐 98px)에 맞춘다. */}
       <div
