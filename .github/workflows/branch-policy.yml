@@ -1,0 +1,46 @@
+name: Branch Policy
+
+# PR 브랜치 규칙 검사 (README '브랜치 전략').
+#   - 작업 브랜치(feat/fix/chore/refact)는 epic/* 를 대상으로 PR 한다.
+#   - epic/* 은 main 을 대상으로 PR 한다.
+#   - 브랜치 이름은 <type>/<service>/<설명> 형식이어야 한다.
+# 이 워크플로가 main 에 올라온 뒤부터 모든 PR에 적용된다.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name and PR base
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          echo "head=$HEAD  base=$BASE"
+          name_re='^(epic|feat|fix|chore|refact)/(app|web|server|common)/[a-z0-9._-]+$'
+          if ! printf '%s' "$HEAD" | grep -Eq "$name_re"; then
+            echo "::error::브랜치 이름이 규칙에 맞지 않습니다: '$HEAD'. 형식: <type>/<service>/<설명> (type: epic|feat|fix|chore|refact · service: app|web|server|common)."
+            exit 1
+          fi
+          type="${HEAD%%/*}"
+          case "$type" in
+            epic)
+              if [ "$BASE" != "main" ]; then
+                echo "::error::에픽 브랜치('$HEAD')는 main 을 대상으로 PR 해야 합니다. 현재 대상: '$BASE'."
+                exit 1
+              fi ;;
+            feat|fix|chore|refact)
+              case "$BASE" in
+                epic/*) : ;;
+                *)
+                  echo "::error::작업 브랜치('$HEAD')는 epic/* 를 대상으로 PR 해야 합니다(에픽에서 따서 에픽으로). 현재 대상: '$BASE'. 먼저 epic/<서비스>/<작업> 을 만드세요."
+                  exit 1 ;;
+              esac ;;
+          esac
+          echo "브랜치 정책 통과"
