@@ -49,7 +49,7 @@ export class YoutubeInternalController {
   @ApiOperation({
     summary: '영상 저장·갱신·삭제',
     description:
-      '한 채널의 영상을 (채널, YouTube 영상 ID) 기준으로 저장하거나 갱신하고, removedVideoIds 의 영상을 그 채널에서 지웁니다. 공개·임베드·길이(10분~2시간) 조건에 맞지 않는 영상은 저장하지 않고 rejected 로 돌려줍니다.',
+      '한 채널의 영상을 (채널, YouTube 영상 ID) 기준으로 저장하거나 갱신하고, removedVideoIds 의 영상을 그 채널에서 지웁니다. 공개·임베드·길이(10분~2시간) 조건에 맞지 않는 영상은 저장하지 않고 rejected 로 돌려줍니다. 저장 뒤 채널당 유지 개수(기본 100개)를 넘으면 저장된 지 오래된 영상부터 지우고 그 수를 evictedCount 로 돌려줍니다.',
   })
   @ApiSuccess(youtubeSyncResultSchema)
   @ApiFailure(

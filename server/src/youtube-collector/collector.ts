@@ -20,8 +20,17 @@ const SEARCH_DURATIONS: SearchDuration[] = ['medium', 'long'];
 export const SYNC_CHUNK_SIZE = 50;
 
 export interface CollectorOptions {
-  /** 채널당 유지할 활성 영상 수. 모자란 만큼만 새로 찾는다. */
+  /** 채널당 유지할 활성 영상 수. */
   targetPerChannel: number;
+  /**
+   * 한 번 실행에서 채널마다 새로 들일 최근 영상 수. 0 이면 모자란 만큼만 채운다.
+   * 들어온 만큼 서버가 오래된 영상을 지워 목표 개수를 유지한다.
+   */
+  rotatePerChannel: number;
+  /** 교체용 검색이 보는 기간(일). 이 기간 안에 공개된 영상만 새로 들인다. */
+  freshWindowDays: number;
+  /** 기간 계산의 기준 시각. 테스트에서 고정하려고 둔다. 기본은 현재 시각. */
+  now?: Date;
   /** 한 번 실행에서 쓸 수 있는 search.list 호출 수. 일일 한도(100회)를 지키기 위한 상한. */
   searchCallBudget: number;
   /** 한 채널이 한 번 실행에서 쓸 수 있는 search.list 호출 수(페이지 넘김 포함). */
@@ -50,6 +59,8 @@ export interface ChannelReport {
   storedBefore: number;
   removed: number;
   added: number;
+  /** 목표 개수를 넘어 서버가 지운(dry-run 이면 지울) 오래된 영상 수. */
+  evicted: number;
   storedAfter: number;
   /** 서버가 검증에서 제외한 영상 수. 동기화하지 않았으면 0. */
   rejected: number;
@@ -82,6 +93,11 @@ interface ChannelPlan {
   /** 이 채널에서 이미 알고 있는 영상. 같은 영상이 다른 채널에 있는 것은 막지 않는다. */
   knownIds: Set<string>;
   added: VideoDetail[];
+  /** 이번 실행에서 새로 들일 최근 영상 수. 교체하지 않는 채널은 0. */
+  rotate: number;
+  /** 교체용 검색. 기간 조건이 붙어 있고, 모자란 만큼 채우는 검색보다 먼저 쓴다. */
+  freshQueue: SearchQuery[];
+  /** 모자란 만큼 채우는 검색. 공개 시각을 가리지 않는다. */
   queue: SearchQuery[];
 }
 
@@ -116,8 +132,10 @@ function describe(error: unknown): string {
  *
  * 1. 서버에서 채널별 검색어와 저장된 영상을 읽는다.
  * 2. 저장된 영상을 재검증해 재생할 수 없게 된 영상을 삭제 대상으로 고른다.
- * 3. 채널당 목표 개수에 모자란 만큼만 새 영상을 검색한다.
+ * 3. 채널마다 최근 공개된 영상을 정해진 수만큼 새로 찾는다(교체). 그래도 목표 개수에
+ *    모자라면 모자란 만큼 공개 시각을 가리지 않고 더 찾는다.
  * 4. 채널별로 결과를 서버에 보낸다. 한 채널이 실패해도 나머지는 계속한다.
+ *    목표 개수를 넘는 만큼은 서버가 저장된 지 오래된 영상부터 지운다.
  */
 export async function runCollector(
   deps: CollectorDeps,
@@ -133,6 +151,11 @@ export async function runCollector(
       : allChannels.filter(
           (c) => c.channelNumber === options.onlyChannelNumber,
         );
+
+  const publishedAfter = new Date(
+    (options.now ?? new Date()).getTime() -
+      options.freshWindowDays * 86_400_000,
+  ).toISOString();
 
   const lookup = await youtube.fetchVideoDetails(
     channels.flatMap((c) => c.storedVideoIds ?? []),
@@ -165,6 +188,23 @@ export async function runCollector(
       );
     }
 
+    // 처음 채울 때처럼 많이 모자란 채널은 교체하지 않고 채우기만 한다.
+    // 저장된 영상을 모르면 무엇이 새 영상인지 알 수 없으므로 교체하지 않는다.
+    const rotate =
+      channel.storedVideoIds !== undefined &&
+      options.targetPerChannel - aliveCount <= options.rotatePerChannel
+        ? options.rotatePerChannel
+        : 0;
+    const queries = (extra: Partial<SearchQuery>): SearchQuery[] =>
+      channel.seedKeywords.flatMap((query) =>
+        SEARCH_DURATIONS.map((duration) => ({
+          query,
+          duration,
+          pageToken: null,
+          ...extra,
+        })),
+      );
+
     return {
       report: {
         channelNumber: channel.channelNumber,
@@ -173,6 +213,7 @@ export async function runCollector(
         storedBefore: stored.length,
         removed: removedVideoIds.length,
         added: 0,
+        evicted: 0,
         storedAfter: aliveCount,
         rejected: 0,
         searchCalls: 0,
@@ -185,18 +226,26 @@ export async function runCollector(
       removedVideoIds,
       knownIds: new Set(stored),
       added: [],
-      queue: channel.seedKeywords.flatMap((query) =>
-        SEARCH_DURATIONS.map((duration) => ({
-          query,
-          duration,
-          pageToken: null,
-        })),
-      ),
+      rotate,
+      freshQueue: rotate > 0 ? queries({ publishedAfter }) : [],
+      queue: queries({}),
     };
   });
 
   const shortage = (plan: ChannelPlan) =>
     options.targetPerChannel - plan.aliveCount - plan.added.length;
+  /** 교체용으로 더 들일 수 있는 최근 영상 수. */
+  const freshRoom = (plan: ChannelPlan) => plan.rotate - plan.added.length;
+  /** 다음에 쓸 검색 큐. 교체용 검색을 먼저 쓰고, 그래도 모자라면 채우는 검색을 쓴다. */
+  const nextQueue = (plan: ChannelPlan): 'fresh' | 'fill' | null => {
+    if (plan.freshQueue.length > 0 && freshRoom(plan) > 0) {
+      return 'fresh';
+    }
+    if (plan.queue.length > 0 && shortage(plan) > 0) {
+      return 'fill';
+    }
+    return null;
+  };
 
   let searchCalls = 0;
   let stoppedBy: CollectorReport['stoppedBy'] = 'done';
@@ -205,8 +254,7 @@ export async function runCollector(
   search: while (true) {
     const pending = plans.filter(
       (p) =>
-        shortage(p) > 0 &&
-        p.queue.length > 0 &&
+        nextQueue(p) !== null &&
         p.report.searchCalls < options.searchCallsPerChannel,
     );
     if (pending.length === 0) {
@@ -217,7 +265,13 @@ export async function runCollector(
         stoppedBy = 'budget';
         break search;
       }
-      const query = plan.queue.shift();
+      const kind = nextQueue(plan);
+      if (kind === null) {
+        continue;
+      }
+      const queue = kind === 'fresh' ? plan.freshQueue : plan.queue;
+      const room = kind === 'fresh' ? freshRoom : shortage;
+      const query = queue.shift();
       if (!query) {
         continue;
       }
@@ -248,7 +302,7 @@ export async function runCollector(
 
       if (page.nextPageToken) {
         // 다음 페이지는 큐 맨 뒤로 보내 다른 검색어의 첫 페이지를 먼저 본다.
-        plan.queue.push({ ...query, pageToken: page.nextPageToken });
+        queue.push({ ...query, pageToken: page.nextPageToken });
       }
 
       const fresh = [...new Set(page.videoIds)].filter(
@@ -269,7 +323,7 @@ export async function runCollector(
           continue;
         }
         plan.report.eligible += 1;
-        if (shortage(plan) > 0) {
+        if (room(plan) > 0) {
           plan.added.push(detail);
         }
       }
@@ -278,7 +332,10 @@ export async function runCollector(
 
   for (const plan of plans) {
     plan.report.added = plan.added.length;
-    plan.report.storedAfter = plan.aliveCount + plan.added.length;
+    // 목표 개수를 넘는 만큼은 서버가 오래된 영상부터 지운다.
+    const total = plan.aliveCount + plan.added.length;
+    plan.report.evicted = Math.max(0, total - options.targetPerChannel);
+    plan.report.storedAfter = total - plan.report.evicted;
 
     const videos = [...plan.refreshed, ...plan.added]
       .filter(hasThumbnail)
@@ -298,6 +355,7 @@ export async function runCollector(
       if (chunks.length === 0) {
         chunks.push([]);
       }
+      let evicted = 0;
       for (const [index, chunk] of chunks.entries()) {
         const result = await server.sync({
           channelNumber: plan.report.channelNumber,
@@ -307,6 +365,7 @@ export async function runCollector(
             ? { removedVideoIds: plan.removedVideoIds }
             : {}),
         });
+        evicted += result.evictedCount;
         plan.report.rejected += result.rejectedCount;
         for (const item of result.rejected) {
           log(
@@ -314,6 +373,8 @@ export async function runCollector(
           );
         }
       }
+      // 예상값 대신 서버가 실제로 지운 수를 남긴다.
+      plan.report.evicted = evicted;
     } catch (error) {
       plan.report.syncError = describe(error);
       log(`채널 ${plan.report.channelNumber} 동기화 실패: ${describe(error)}`);

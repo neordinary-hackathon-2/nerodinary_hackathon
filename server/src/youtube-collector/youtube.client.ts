@@ -34,6 +34,8 @@ export interface SearchQuery {
   query: string;
   duration: SearchDuration;
   pageToken: string | null;
+  /** 이 시각(ISO 8601) 이후에 공개된 영상만 찾는다. 없으면 공개 시각을 가리지 않는다. */
+  publishedAfter?: string;
 }
 
 export interface SearchPage {
@@ -147,7 +149,7 @@ export function createYoutubeClient(
   }
 
   return {
-    async searchVideoIds({ query, duration, pageToken }) {
+    async searchVideoIds({ query, duration, pageToken, publishedAfter }) {
       const params: Record<string, string> = {
         part: 'snippet',
         type: 'video',
@@ -162,6 +164,9 @@ export function createYoutubeClient(
       };
       if (pageToken) {
         params.pageToken = pageToken;
+      }
+      if (publishedAfter) {
+        params.publishedAfter = publishedAfter;
       }
       const body = searchSchema.parse(await get('search', params));
       return {

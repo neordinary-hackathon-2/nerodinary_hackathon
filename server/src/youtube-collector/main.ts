@@ -5,6 +5,7 @@ import { createFileChannelSource, createSyncClient } from './sync.client.js';
 import {
   DEFAULT_MAX_DURATION_SECONDS,
   DEFAULT_MIN_DURATION_SECONDS,
+  DEFAULT_TARGET_PER_CHANNEL,
 } from '../youtube/youtube.constants.js';
 import { createYoutubeClient } from './youtube.client.js';
 
@@ -21,7 +22,13 @@ const envSchema = z.object({
   YOUTUBE_API_KEY: z.string().min(1),
   SYNC_API_BASE_URL: z.string().url().optional(),
   SEED_TOKEN: z.string().min(1).optional(),
-  TARGET_PER_CHANNEL: z.coerce.number().int().min(1).default(100),
+  TARGET_PER_CHANNEL: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(DEFAULT_TARGET_PER_CHANNEL),
+  ROTATE_PER_CHANNEL: z.coerce.number().int().min(0).default(10),
+  FRESH_WINDOW_DAYS: z.coerce.number().int().min(1).default(7),
   SEARCH_CALL_BUDGET: z.coerce.number().int().min(0).max(100).default(60),
   SEARCH_CALLS_PER_CHANNEL: z.coerce.number().int().min(0).max(100).default(6),
   MIN_DURATION_SECONDS: z.coerce
@@ -46,6 +53,7 @@ function printReport(report: CollectorReport, dryRun: boolean): void {
       '실행 전': c.storedKnown ? c.storedBefore : '모름',
       삭제: c.removed,
       추가: c.added,
+      교체: c.evicted,
       '실행 후': c.storedKnown ? `${c.storedAfter}/${c.target}` : `+${c.added}`,
       '서버 제외': c.rejected,
       검색: c.searchCalls,
@@ -81,6 +89,17 @@ async function main(): Promise<void> {
   if (env.MIN_DURATION_SECONDS > env.MAX_DURATION_SECONDS) {
     throw new Error(
       'MIN_DURATION_SECONDS 가 MAX_DURATION_SECONDS 보다 큽니다.',
+    );
+  }
+
+  // 영상 하나가 밀려나기까지 걸리는 날수(목표 ÷ 하루 교체 수)보다 검색 기간이 짧아야
+  // 지운 영상이 다음 검색에 다시 잡히지 않는다.
+  if (
+    env.ROTATE_PER_CHANNEL > 0 &&
+    env.FRESH_WINDOW_DAYS * env.ROTATE_PER_CHANNEL >= env.TARGET_PER_CHANNEL
+  ) {
+    throw new Error(
+      'FRESH_WINDOW_DAYS × ROTATE_PER_CHANNEL 은 TARGET_PER_CHANNEL 보다 작아야 합니다. 그렇지 않으면 지운 영상이 다시 들어옵니다.',
     );
   }
 
@@ -121,6 +140,8 @@ async function main(): Promise<void> {
     },
     {
       targetPerChannel: env.TARGET_PER_CHANNEL,
+      rotatePerChannel: env.ROTATE_PER_CHANNEL,
+      freshWindowDays: env.FRESH_WINDOW_DAYS,
       searchCallBudget: env.SEARCH_CALL_BUDGET,
       searchCallsPerChannel: env.SEARCH_CALLS_PER_CHANNEL,
       limits: {

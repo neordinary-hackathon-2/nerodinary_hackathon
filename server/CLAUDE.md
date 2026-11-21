@@ -20,7 +20,7 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 |---|---|
 | F1 채널 목록 | 채널: id, 이름, `order`(1~9), 슬로건, 대표 색상, 아이콘 |
 | F2 채널 영상 재생 | 영상: id, 채널 id, 유튜브 링크/ID, 제목 |
-| F4 랜덤 | 채널별 영상 풀 (채널당 100개 유지, 길이 10분~2시간, 퍼가기 가능한 영상만) |
+| F4 랜덤 | 채널별 영상 풀 (채널당 100개 유지, 하루 10개씩 최근 영상으로 교체, 길이 10분~2시간, 퍼가기 가능한 영상만) |
 
 - 화면의 채널 번호(`CH 1`~`CH 9`)는 서버의 `order`(1~9)와 같은 값이다. 연출용 별도 번호(`CH 05` 등)는 쓰지 않는다.
 - 채널 편성표 팝업(헤더 ? 아이콘)은 채널 번호·이름·슬로건을 F1 채널 데이터로 표시한다.
@@ -32,7 +32,7 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 - 내부 수집 API(`/api/internal/youtube/seed-config`, `sync`)는 `src/youtube/`에 있고 `X-Seed-Token`으로 보호한다. `SEED_TOKEN`이 없으면 서버가 뜨지 않는다.
 - 같은 YouTube 영상을 여러 채널에 편성할 수 있다(11.22 결정). 고유 제약은 `(app_channel_id, youtube_video_id)` 복합이고, `sync` 서비스는 "있으면 갱신, 없으면 추가"로 처리한다.
 - 채널 0~9번은 초기 마이그레이션(`0000`)이 넣는다. **이미 적용된 마이그레이션 파일은 고치지 않는다.** 내용을 바꿔도 적용된 DB에는 반영되지 않아 운영에서 500이 난다(11.22 장애). 스키마를 바꾸면 `pnpm db:generate`로 새 파일을 추가한다.
-- 수집기는 `src/youtube-collector/`(Nest와 별개, Actions에서 실행)다. 서버 내부 API 계약과 할당량은 [`docs/decisions/0003-youtube-collector.md`](docs/decisions/0003-youtube-collector.md).
+- 수집기는 `src/youtube-collector/`(Nest와 별개, Actions에서 실행)다. 서버 내부 API 계약과 할당량은 [`docs/decisions/0003-youtube-collector.md`](docs/decisions/0003-youtube-collector.md), 하루 교체 정책은 [`docs/decisions/0005-youtube-daily-rotation.md`](docs/decisions/0005-youtube-daily-rotation.md).
 
 미확정(임의로 정하지 말고 사용자에게 확인): 최종 채널 목록, 검색어를 DB와 저장소 JSON 중 어디서 관리할지.
 
