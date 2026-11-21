@@ -6,8 +6,8 @@ interface HeaderProps {
 
 const Header = ({isLive}: HeaderProps) => {
   return (
-    <header className="flex items-center justify-between pt-[11px] pr-[11px] pl-[19px]">
-      <h1 className="font-press-start text-2xl whitespace-nowrap text-text-brand">
+    <header className="flex flex-col items-start gap-2 px-5 pt-2">
+      <h1 className="font-press-start text-[28px] leading-[28px] whitespace-nowrap text-text-brand">
         BAPSONGGUK
       </h1>
       <OnAirBadge isLive={isLive} />
