@@ -26,13 +26,13 @@
 
 ### GET /api/channels — 채널 목록 조회 (F1)
 
-채널 번호, 카테고리명, 슬로건을 번호순으로 반환합니다. F1에서 채널 정보를 로딩하고 F9 편성표 팝업을 표시할 때 사용합니다. 랜덤 영상 API에는 이름과 슬로건이 없으므로 채널 메타데이터는 이 API에서 받습니다. 0번 컬러바도 목록에 포함하며, 이 채널에는 영상 후보가 없습니다. DB 내부 ID는 노출하지 않습니다.
+채널 번호, 카테고리명, 슬로건을 번호순으로 반환합니다. F1에서 채널 정보를 로딩하고 F9 편성표 팝업을 표시할 때 사용합니다. 랜덤 영상 API에는 이름과 슬로건이 없으므로 채널 메타데이터는 이 API에서 받습니다. 1~9번 채널을 반환하며 DB 내부 ID는 노출하지 않습니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
 | 요청 | Path/Query/Body | 없음 | 전체 채널 목록 조회 |
-| 응답 | result.channels[] | 배열, 필수, 최대 10개 | 등록된 0~9번 채널을 번호순으로 반환. 시딩 전에는 빈 배열 |
-| 응답 | result.channels[].channelNumber | number, 필수 | 리모컨과 화면에 표시할 채널 번호(0~9) |
+| 응답 | result.channels[] | 배열, 필수, 최대 9개 | 등록된 1~9번 채널을 번호순으로 반환. 시딩 전에는 빈 배열 |
+| 응답 | result.channels[].channelNumber | number, 필수 | 리모컨과 화면에 표시할 채널 번호(1~9) |
 | 응답 | result.channels[].name | string, 필수 | 카테고리명. 예: 예능, 금융 |
 | 응답 | result.channels[].slogan | string, 필수 | 편성표에 표시할 채널 슬로건 |
 
@@ -44,7 +44,6 @@
       "message": "요청에 성공했습니다.",
       "result": {
         "channels": [
-          {"channelNumber": 0, "name": "컬러바", "slogan": "전원을 켜면 처음 뜨는 대기 화면"},
           {"channelNumber": 1, "name": "예능", "slogan": "웃다 체하지 마세요"},
           {"channelNumber": 2, "name": "금융", "slogan": "밥상에서 갑자기 재테크"},
           {"channelNumber": 3, "name": "뉴스", "slogan": "오늘 일을 밥값 시간에"},
@@ -58,24 +57,24 @@
       }
     }
 
-채널 시딩 전에는 `channels: []`을 반환합니다. 0~9번 채널을 시딩하면 편성표에 10개가 표시됩니다.
+채널 시딩 전에는 `channels: []`을 반환합니다. 시딩 후에는 1~9번 채널 9개가 표시됩니다.
 
 ### GET /api/channels/random-videos — 전체 채널의 랜덤 영상 10개씩
 
-한 번의 요청으로 0~9번 채널을 번호순으로 반환하고, 채널마다 저장된 후보 중 중복 없이 최대 10개를 랜덤으로 선택합니다. 후보가 10개보다 적으면 저장된 후보를 모두 반환하고, 후보가 없으면 빈 배열을 반환합니다. 이 API는 재생 후보용이며, 채널 정보 표시는 `GET /api/channels`를 사용합니다. 채널별 영상 조회 API는 두지 않습니다.
+한 번의 요청으로 1~9번 채널을 번호순으로 반환하고, 채널마다 저장된 후보 중 중복 없이 최대 10개를 랜덤으로 선택합니다. 후보가 10개보다 적으면 저장된 후보를 모두 반환하고, 후보가 없으면 빈 배열을 반환합니다. 이 API는 재생 후보용이며, 채널 정보 표시는 `GET /api/channels`를 사용합니다. 채널별 영상 조회 API는 두지 않습니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
 | 요청 | Path/Query/Body | 없음 | 전체 채널의 랜덤 영상을 한 번에 조회 |
 | 응답 | result.channels[] | 배열, 필수 | channelNumber 오름차순의 모든 채널 |
-| 응답 | result.channels[].channelNumber | number, 필수 | 리모컨과 화면에 표시할 채널 번호(0~9). DB 내부 PK는 노출하지 않음 |
+| 응답 | result.channels[].channelNumber | number, 필수 | 리모컨과 화면에 표시할 채널 번호(1~9). DB 내부 PK는 노출하지 않음 |
 | 응답 | result.channels[].videos | 배열, 필수, 최대 10개 | 해당 채널에서 무작위로 선택한 영상. 후보가 없으면 빈 배열 |
 | 응답 | result.channels[].videos[].youtubeVideoId | string | YouTube iframe 재생 주소를 만드는 ID |
 | 응답 | result.channels[].videos[].title | string | 영상 제목 |
 | 응답 | result.channels[].videos[].thumbnailUrl | string | 카드·재생 전 화면용 썸네일 주소 |
 | 응답 | result.channels[].videos[].durationSeconds | number | 영상 길이(초) |
 
-응답 예시는 두 채널만 표시합니다. 1번 채널은 저장 후보가 2개, 2번 채널은 후보가 없는 경우이며, 실제 응답은 0~9번 채널을 포함합니다. 0번 컬러바와 영상 후보가 없는 채널은 빈 videos 배열을 반환합니다. 후보가 10개 이상인 채널은 videos에 10개를 반환합니다.
+응답 예시는 두 채널만 표시합니다. 1번 채널은 저장 후보가 2개, 2번 채널은 후보가 없는 경우이며, 실제 응답은 1~9번 채널을 포함합니다. 영상 후보가 없는 채널은 빈 videos 배열을 반환합니다. 후보가 10개 이상인 채널은 videos에 10개를 반환합니다.
 
     {
       "isSuccess": true,
@@ -118,13 +117,13 @@ X-Seed-Token은 GitHub Secrets와 서버 비밀 설정에 둡니다. YouTube API
 
 ### GET /api/internal/youtube/seed-config — 수집 설정 조회
 
-채널별 검색어와 이미 저장된 영상 ID를 반환합니다. 수집기는 검색어를 사용해 후보를 찾고, 저장된 ID를 재검증·중복 방지에 사용합니다. 0번 컬러바를 포함해 등록된 채널을 반환합니다.
+채널별 검색어와 이미 저장된 영상 ID를 반환합니다. 수집기는 검색어를 사용해 후보를 찾고, 저장된 ID를 재검증·중복 방지에 사용합니다. 등록된 1~9번 채널을 반환합니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
 | 요청 Header | X-Seed-Token | string, 필수 | 내부 호출 인증 |
 | 요청 | Query/Body | 없음 | 전체 채널 검색어 조회 |
-| 응답 | result.channels[].channelNumber | number, 필수 | 서비스 채널 번호(0~9) |
+| 응답 | result.channels[].channelNumber | number, 필수 | 서비스 채널 번호(1~9) |
 | 응답 | result.channels[].seedKeywords[] | string 배열, 필수 | 채널별 검색어 |
 | 응답 | result.channels[].storedVideoIds[] | string 배열, 필수 | 해당 채널에 현재 저장된 YouTube 영상 ID 목록. 채널에 저장 영상이 없으면 빈 배열 |
 
@@ -148,7 +147,7 @@ Actions가 YouTube Data API에서 검색·검증한 후보와 재검증에서 �
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
 | 요청 Header | X-Seed-Token | string, 필수 | 내부 호출 인증 |
-| 요청 Body | channelNumber | number, 필수 | 영상 수집 대상 채널 번호(1~9). 0번 컬러바는 수집하지 않음 |
+| 요청 Body | channelNumber | number, 필수 | 영상 수집 대상 채널 번호(1~9) |
 | 요청 Body | videos | 배열(0개 이상), 필수 | 새 후보와 갱신할 기존 후보. 빈 배열을 허용하며 삭제 대상만 보낼 수 있음 |
 | 요청 Body | videos[].youtubeVideoId | string, 필수 | YouTube 영상 ID. 중복 갱신 기준 |
 | 요청 Body | videos[].title | string, 필수 | 영상 제목 |

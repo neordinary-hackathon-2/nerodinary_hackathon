@@ -61,7 +61,7 @@ POST /api/internal/youtube/sync      (채널당 1회)
 | Swagger 노출 | 내부 API도 문서에 보인다. 토큰이 없으면 401 | sychoi |
 | 채널 간 중복 | 같은 영상을 여러 채널에 편성할 수 있다. 테이블을 나누지 않고 `(app_channel_id, youtube_video_id)` 복합 고유 제약으로 한 채널 안에서만 중복을 막는다. 동시 삽입 경합은 서비스의 원자적 upsert로 처리한다 | sychoi, galllee (11.22 합의) |
 | `SEED_TOKEN` | 서버 필수 환경변수(16자 이상). 없으면 부팅에 실패한다. 운영에서는 GitHub Secret `SEED_TOKEN`을 배포가 `.env.production`에 넣는다([0004](0004-production-env-from-github-secrets.md)) | sychoi |
-| 채널 초기 데이터 | 마이그레이션이 아니라 SQL을 DB에 한 번 실행해 넣는다. 초기 마이그레이션(`0000`)이 0~9번 채널을 함께 넣는다(galllee, PR #25). 0번 컬러바는 검색어가 없어 수집하지 않는다 | sychoi |
+| 채널 초기 데이터 | `0000`은 당시 편성표에 따라 0~9번을 시딩한다. 컬러바 제거 결정 후 추가된 `0002_remove_colorbar_channel`이 0번 행을 삭제하고 번호 범위를 1~9로 제한한다. 최종 DB와 수집 대상은 1~9번이다 | sychoi (초기 시드), galllee (컬러바 제거) |
 
 `sync` 처리:
 

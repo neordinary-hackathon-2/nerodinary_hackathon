@@ -15,6 +15,13 @@
       "when": 1795279625513,
       "tag": "0001_married_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1795290673186,
+      "tag": "0002_remove_colorbar_channel",
+      "breakpoints": true
     }
   ]
 }

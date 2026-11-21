@@ -7,7 +7,7 @@
 ```bash
 pnpm install
 cp .env.example .env.local   # DB 접속 정보 수정
-pnpm db:migrate              # 테이블 생성 및 0~9번 채널 초기 시딩
+pnpm db:migrate              # 테이블 생성 및 1~9번 채널 초기 시딩
 pnpm start:dev
 ```
 
@@ -22,7 +22,7 @@ pnpm start:dev
 | `pnpm lint` / `pnpm format` | 린트 / 포맷 |
 | `pnpm test:e2e` | 공통 응답·예외 규약, Swagger 문서 생성 테스트 |
 | `pnpm db:push` | 스키마를 로컬 DB에 바로 반영 (개발 중) |
-| `pnpm db:migrate` | 초기 테이블과 0~9번 채널 시드를 마이그레이션으로 적용 |
+| `pnpm db:migrate` | 초기 테이블과 1~9번 채널 시드를 마이그레이션으로 적용 |
 | `pnpm db:generate` | 스키마 변경을 마이그레이션 SQL로 생성 (`drizzle/`) |
 | `pnpm db:studio` | DB 조회 화면 |
 
