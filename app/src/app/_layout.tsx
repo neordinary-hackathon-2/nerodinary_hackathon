@@ -2,7 +2,7 @@ import {Stack} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
 
-// 첫 WebView 로딩이 끝날 때까지 스플래시를 유지한다. 내리는 건 HomeScreen이 한다.
+// SplashOverlay(Figma 스플래시 전체 화면)가 그려질 때까지 네이티브 스플래시를 유지한다. 내리는 건 SplashOverlay가 한다.
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({duration: 300, fade: true});
 

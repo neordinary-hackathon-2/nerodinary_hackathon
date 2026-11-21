@@ -6,10 +6,12 @@ import {z} from 'zod';
  * 앱 밖(일반 브라우저)에서는 `window.ReactNativeWebView`가 없으므로 보내지 않는다.
  */
 
-/** 앱이 햅틱과 효과음으로 함께 표현하는 피드백 종류. */
+/** 앱이 햅틱과 효과음으로 표현하는 피드백 종류. */
 export const appFeedbackSchema = z.enum([
-  // 리모컨 버튼 누름 (숫자·채널·볼륨·새로고침)
+  // 리모컨 버튼 누름 (숫자·새로고침·편성표). 햅틱 + 효과음
   'tap',
+  // 리모컨 볼륨·채널 ▲▼ 누름. 효과음 없이 햅틱만
+  'silentTap',
   // TV 전원 켜기
   'powerOn',
   // TV 전원 끄기

@@ -1,10 +1,4 @@
-const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
+const DEPLOYED_WEB_URL = 'https://bapsongguk-tv.vercel.app';
 
-if (!webUrl) {
-  throw new Error(
-    'EXPO_PUBLIC_WEB_URL이 없습니다. app/.env 또는 app/.env.local에 웹 주소를 넣어 주세요.',
-  );
-}
-
-/** WebView로 띄우는 밥송국 웹 주소. */
-export const WEB_URL = webUrl;
+/** WebView로 띄우는 밥송국 웹 주소. 로컬 웹 개발 서버를 띄울 때만 EXPO_PUBLIC_WEB_URL로 바꾼다. */
+export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || DEPLOYED_WEB_URL;

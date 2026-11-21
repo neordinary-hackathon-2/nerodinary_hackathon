@@ -21,6 +21,11 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/** 다크 모드와 상관없이 쓰는 밥송국 브랜드 색. 이름은 web의 `--color-*` 토큰과 같다. */
+export const BrandColors = {
+  peach400: '#FABD7E',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',
