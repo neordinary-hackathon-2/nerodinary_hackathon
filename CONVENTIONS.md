@@ -52,6 +52,7 @@
 | `react/rules-of-hooks` | error | 훅 호출 규칙 |
 | `react/exhaustive-deps` | warn | 의존성 배열 누락 |
 | `unicorn/filename-case` | error | 파일명 규칙 → [4.1](#41-파일) |
+| `no-restricted-imports` | error | `@shared`는 `import type`으로만 → [5.3](#53-서버와-타입-공유-zod) |
 | `react/forbid-dom-props` (web) | error | `style` 속성 금지 → [11.1](#111-web-tailwind-css) |
 | `react-perf/jsx-no-new-object-as-prop` (app) | warn | `style={{...}}` 같은 인라인 객체 금지 → [11.2](#112-app-stylesheet) |
 
@@ -105,6 +106,8 @@ fix: 재연결 시 세션이 초기화되는 문제 수정
 | 컴포넌트 | PascalCase | `PlayerCard` |
 | 타입 / interface / enum | PascalCase | `Player`, `PlayerCardProps`, `GameStatus` |
 | 원시값 상수 | UPPER_SNAKE_CASE | `MAX_PLAYERS`, `DEFAULT_TIMEOUT_MS` |
+| zod 스키마 | camelCase + `Schema` | `contentSchema`, `healthResponseSchema` |
+| 요청/응답 타입 | PascalCase + `RequestDto` / `ResponseDto` | `CreateContentRequestDto`, `HealthResponseDto` |
 
 ### 4.3 API 함수 접두사
 
@@ -167,12 +170,14 @@ const isPlayer = (value: unknown): value is Player =>
   typeof value === 'object' && value !== null && 'id' in value;
 ```
 
-**`interface` vs `type`**
+**타입을 정의하는 방법**
 
-| 구분 | 키워드 | 예시 |
-|---|---|---|
-| 클라이언트 전용 (props, 훅 반환값, 컴포넌트 내부 구조) | `interface` | `PlayerCardProps`, `UsePlayerListReturn` |
-| 서버 연동 (API 요청/응답, 모델) | `type` | `PlayerResponseDto`, `CreateRoomRequestDto` |
+| 구분 | 방법 | 위치 | 예시 |
+|---|---|---|---|
+| 엔티티, API 요청/응답 | zod 스키마 + `z.infer` | `shared/` | `healthResponseSchema` → `HealthResponseDto` |
+| 클라이언트 전용 (props, 훅 반환값, 컴포넌트 내부 구조) | `interface` | 쓰는 파일 | `PlayerCardProps`, `UsePlayerListReturn` |
+
+서버와 주고받는 데이터의 타입은 `type`/`interface`로 손으로 쓰지 않는다. `shared/`의 zod 스키마가 유일한 원본이다 → [5.3](#53-서버와-타입-공유-zod).
 
 props가 RN/DOM 기본 props를 확장하면 `extends`를 쓴다.
 
@@ -182,18 +187,52 @@ interface ThemedTextProps extends TextProps {
 }
 ```
 
-### 5.3 서버와 타입 공유
+### 5.3 서버와 타입 공유 (zod)
 
-API 요청/응답 타입의 기준은 `server/`의 DTO다.
+엔티티와 API 요청/응답 타입은 **레포 루트 [`shared/`](shared/)에 zod 스키마로 정의하고, app/web은 거기서 타입만 가져온다.** 서버는 같은 스키마로 요청을 검증하고 Swagger 문서를 만든다.
 
-- 이름과 필드는 서버 DTO와 똑같이 쓴다 (`HealthResponseDto` → `HealthResponseDto`). 화면에 맞게 필드 이름을 바꾸거나 합치지 않는다. 변환이 필요하면 훅의 `select`에서 한다 → [9.1](#91-api-훅-tanstack-query).
-- 서버가 바뀌면 같은 PR에서 app/web 타입도 고친다.
-- 타입은 해당 도메인 API 모듈(`src/api/players.ts`)에 `export type`으로 둔다.
-- 서버 응답 봉투 `{isSuccess, code, message, result}`는 `src/api/client.ts`에서 벗기고, 도메인 타입은 `result` 안쪽만 정의한다 → [7.1](#71-클라이언트).
+```ts
+import type {Content, CreateContentRequestDto} from '@shared';
+```
+
+| 폴더 | 내용 | 예시 |
+|---|---|---|
+| `shared/entities/` | 도메인 엔티티 (zod 스키마 + 타입) | `contentSchema`, `Content` |
+| `shared/api/` | API 요청/응답. 엔티티에서 파생 | `createContentRequestSchema`, `CreateContentRequestDto` |
+
+`shared/`에 정의하는 형태:
+
+```ts
+// shared/api/health.ts
+import {z} from 'zod';
+
+export const healthResponseSchema = z
+  .object({
+    status: z.literal('UP'),
+    database: z.enum(['UP', 'DOWN']),
+    timestamp: z.string(),
+  })
+  .meta({id: 'HealthResponseDto'}); // Swagger 문서의 이름
+
+export type HealthResponseDto = z.infer<typeof healthResponseSchema>;
+```
+
+- 스키마와 `z.infer` 타입을 같은 파일에서 함께 export한다.
+- API 요청/응답 스키마는 가능하면 `shared/entities/`의 엔티티에서 `pick` / `omit` / `extend`로 만든다.
+- 새 파일을 만들면 폴더의 `index.ts`에 `export * from './파일.js';`를 추가한다.
+
+app/web에서 쓸 때:
+
+- **(자동)** 반드시 `import type`으로 가져온다. 값으로 import하면 린트 오류가 난다. 스키마 자체(런타임 검증)는 FE에서 쓰지 않는다.
+- `@shared` 별칭은 `tsconfig.json`의 `paths`에 있다(`../shared/index.ts`). 서버 코드를 설치하거나 빌드할 필요는 없다.
+- 타입을 그대로 쓴다. 화면에 맞게 필드 이름을 바꾸거나 합치지 않는다. 변환이 필요하면 훅의 `select`에서 한다 → [9.1](#91-api-훅-tanstack-query).
+- `shared/`가 바뀌면 app/web 타입체크가 바로 깨진다. 바꾸는 PR에서 app/web 사용처도 같이 고친다.
+- 필요한 타입이 아직 없으면 서버 담당자에게 요청하거나 `shared/`에 직접 추가한다. 이 폴더의 파일은 `zod`와 같은 폴더 안의 파일만 import할 수 있다.
+- 서버 응답 봉투 `{isSuccess, code, message, result}`는 `src/api/client.ts`에서 벗기고, 도메인 타입은 `result` 안쪽만 쓴다. 봉투 타입도 `ApiEnvelope`로 가져온다 → [7.1](#71-클라이언트).
 
 ### 5.4 enum
 
-클라이언트 전용 상수 묶음은 `enum`으로 관리한다. 서버 DTO에 있는 값은 서버 정의(문자열 유니온 등)를 그대로 따른다.
+클라이언트 전용 상수 묶음은 `enum`으로 관리한다. 서버와 주고받는 값은 `shared/` 스키마의 `z.enum`에서 나온 유니온 타입을 그대로 쓴다 (`HealthResponseDto['database']` → `'UP' | 'DOWN'`).
 
 ```ts
 export enum TabKey {
@@ -235,7 +274,7 @@ src/
 ├── hooks/       # 커스텀 훅 (API 훅 포함)
 ├── constants/   # 상수, 디자인 토큰, query key
 ├── utils/       # 순수 함수
-└── api/         # 서버 API 호출 + 요청/응답 타입
+└── api/         # 서버 API 호출 (타입은 @shared)
 ```
 
 | 폴더 | 책임 | 하지 않는 것 |
@@ -244,7 +283,7 @@ src/
 | `screens/` | 화면 조립, 훅에서 받은 데이터 렌더링 | `fetch` 직접 호출 |
 | `components/` | UI 렌더링, 이벤트를 props로 전달 | API 호출, 전역 상태 변경 |
 | `hooks/` | 상태·데이터 로직 캡슐화, 화면에 데이터 제공 | JSX 반환 |
-| `api/` | HTTP 요청/응답, 응답 타입 | 상태 변경, 라우팅, UI |
+| `api/` | HTTP 요청/응답 | 상태 변경, 라우팅, UI, 요청/응답 타입 직접 정의 |
 | `utils/` | 입력 → 출력 순수 함수 | 사이드 이펙트, 외부 의존 |
 | `constants/` | 변하지 않는 값 | 계산 로직 |
 
@@ -268,12 +307,7 @@ export {default} from '@/screens/PlayerDetailScreen';
 
 ```ts
 // src/api/client.ts
-type ApiEnvelope<T> = {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-  result: T | null;
-};
+import type {ApiEnvelope} from '@shared';
 
 export class ApiError extends Error {
   constructor(
@@ -302,20 +336,13 @@ export const request = async <T>(path: string, init?: RequestInit) => {
 
 ### 7.2 도메인 모듈
 
-도메인마다 파일 하나. 요청/응답 타입과 함수를 같이 두고, 함수는 default export 객체로 묶는다.
+도메인마다 파일 하나. 요청/응답 타입은 `shared/`에서 가져오고([5.3](#53-서버와-타입-공유-zod)), 함수는 default export 객체로 묶는다.
 
 ```ts
 // src/api/players.ts
+import type {EditPlayerRequestDto, PlayerResponseDto} from '@shared';
+
 import {request} from './client';
-
-export type PlayerResponseDto = {
-  id: number;
-  nickname: string;
-};
-
-export type EditPlayerRequestDto = {
-  nickname: string;
-};
 
 export default {
   getPlayer(id: number) {
@@ -631,7 +658,7 @@ const bottomInset = Platform.OS === 'android' ? keyboardHeight : 0;
 - [ ] `pnpm lint` 통과 (포맷, `any`, 미사용 코드, 파일명, 인라인 스타일)
 - [ ] 컴포넌트·화면 PascalCase, 훅 `use*`, 나머지 camelCase, 라우트는 프레임워크 규칙
 - [ ] 컴포넌트·훅·API 모듈은 default export, 유틸·상수·타입은 named export
-- [ ] props·훅 반환 타입은 `interface`, 서버 연동 타입은 서버 DTO와 같은 이름의 `type`
+- [ ] 서버와 주고받는 타입은 `shared/`의 zod 스키마에서 `import type`, props·훅 반환 타입은 `interface`
 - [ ] 라우트 파일은 `screens/`를 re-export만 한다
 - [ ] 화면·컴포넌트에서 `API`/`fetch`를 직접 부르지 않고 훅을 쓴다
 - [ ] 서버 데이터는 TanStack Query 캐시에만 둔다

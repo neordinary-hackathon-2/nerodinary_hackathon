@@ -4,15 +4,13 @@ import {
   Get,
   INestApplication,
   Param,
-  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
+import { z } from 'zod';
 import { configureApp } from '../src/app.setup.js';
 import { BusinessException } from '../src/common/exception/business.exception.js';
 import { ErrorCodes } from '../src/common/exception/error-code.js';
@@ -21,33 +19,28 @@ import { ErrorCodes } from '../src/common/exception/error-code.js';
  * 공통 응답/예외 규약을 검증한다. (심사 기준: 200/201/400/404/500 구분)
  * DB 없이 돌도록 테스트 전용 컨트롤러에 실제 앱과 같은 전역 구성(configureApp)을 적용한다.
  */
-class CreateItemDto {
-  @IsString()
-  @IsNotEmpty()
-  title: string;
+const createItemSchema = z.strictObject({
+  title: z.string().min(1),
+  level: z.number().int().min(1).max(5),
+});
+type CreateItemDto = z.infer<typeof createItemSchema>;
 
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  level: number;
-}
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+});
+type ListQueryDto = z.infer<typeof listQuerySchema>;
 
-class ListQueryDto {
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-}
+const idSchema = z.coerce.number().int().positive();
 
 @Controller('items')
 class ItemController {
   @Get()
-  list(@Query() query: ListQueryDto) {
+  list(@Query({ schema: listQuerySchema }) query: ListQueryDto) {
     return { page: query.page, items: [] };
   }
 
   @Post()
-  create(@Body() dto: CreateItemDto) {
+  create(@Body({ schema: createItemSchema }) dto: CreateItemDto) {
     return { id: 1, title: dto.title, level: dto.level };
   }
 
@@ -57,7 +50,7 @@ class ItemController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', { schema: idSchema }) id: number) {
     if (id !== 1) {
       throw new BusinessException(ErrorCodes.NOT_FOUND, '아이템이 없습니다.');
     }
@@ -105,10 +98,13 @@ describe('공통 응답 · 전역 예외처리 (e2e)', () => {
     });
   });
 
-  it('쿼리스트링은 DTO 타입으로 변환된다', async () => {
+  it('쿼리스트링은 스키마 타입으로 변환되고, 없으면 기본값이 들어간다', async () => {
     const res = await request(app.getHttpServer()).get('/api/items?page=2');
     expect(res.status).toBe(200);
     expect(res.body.result.page).toBe(2);
+
+    const withDefault = await request(app.getHttpServer()).get('/api/items');
+    expect(withDefault.body.result.page).toBe(1);
   });
 
   it('본문 값이 잘못되면 → 400 + 필드별 사유', async () => {
@@ -126,7 +122,7 @@ describe('공통 응답 · 전역 예외처리 (e2e)', () => {
     ]);
   });
 
-  it('DTO에 없는 필드가 오면 → 400', async () => {
+  it('strictObject 스키마에 없는 필드가 오면 → 400', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/items')
       .send({ title: 'a', level: 1, hacked: true });
@@ -143,7 +139,10 @@ describe('공통 응답 · 전역 예외처리 (e2e)', () => {
   it('경로 파라미터 타입이 틀리면 → 400', async () => {
     const res = await request(app.getHttpServer()).get('/api/items/abc');
     expect(res.status).toBe(400);
-    expect(res.body).toMatchObject({ isSuccess: false, code: 'COMMON400' });
+    expect(res.body).toMatchObject({
+      isSuccess: false,
+      code: 'COMMON400_VALIDATION',
+    });
   });
 
   it('깨진 JSON 본문 → 400', async () => {

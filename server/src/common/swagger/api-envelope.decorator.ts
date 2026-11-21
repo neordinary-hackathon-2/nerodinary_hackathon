@@ -1,57 +1,38 @@
-import { applyDecorators, HttpStatus, Type } from '@nestjs/common';
-import {
-  ApiExtraModels,
-  ApiResponse as SwaggerResponse,
-  getSchemaPath,
-} from '@nestjs/swagger';
+import { applyDecorators, HttpStatus } from '@nestjs/common';
+import { ApiResponse as SwaggerResponse } from '@nestjs/swagger';
+import { z } from 'zod';
 import { ErrorCode } from '../exception/error-code.js';
 
 interface SuccessOptions {
   status?: HttpStatus.OK | HttpStatus.CREATED;
-  isArray?: boolean;
   description?: string;
 }
 
 /**
- * 성공 응답을 공통 봉투 형태로 Swagger에 문서화한다.
- * 사용: @ApiSuccess(ContentResponseDto)
- *       @ApiSuccess(ContentResponseDto, { status: HttpStatus.CREATED })
- *       @ApiSuccess(ContentResponseDto, { isArray: true })
+ * 성공 응답을 공통 봉투 형태로 Swagger에 문서화한다. `result`의 모양은 zod 스키마에서 만든다.
+ * 사용: @ApiSuccess(contentResponseSchema)
+ *       @ApiSuccess(contentResponseSchema, { status: HttpStatus.CREATED })
+ *       @ApiSuccess(z.array(contentResponseSchema))
+ *       @ApiSuccess()   // result가 null인 응답
  */
-export function ApiSuccess<T extends Type<unknown>>(
-  model?: T,
-  { status = HttpStatus.OK, isArray = false, description }: SuccessOptions = {},
+export function ApiSuccess(
+  resultSchema: z.ZodType = z.null(),
+  { status = HttpStatus.OK, description }: SuccessOptions = {},
 ) {
   const created = status === HttpStatus.CREATED;
-  const modelRef = model ? { $ref: getSchemaPath(model) } : undefined;
-  const result = !modelRef
-    ? { type: 'object', nullable: true, example: null }
-    : isArray
-      ? { type: 'array', items: modelRef }
-      : modelRef;
 
-  return applyDecorators(
-    ...(model ? [ApiExtraModels(model)] : []),
-    SwaggerResponse({
-      status,
-      description: description ?? (created ? '생성 성공' : '성공'),
-      schema: {
-        type: 'object',
-        properties: {
-          isSuccess: { type: 'boolean', example: true },
-          code: {
-            type: 'string',
-            example: created ? 'COMMON201' : 'COMMON200',
-          },
-          message: {
-            type: 'string',
-            example: created ? '생성에 성공했습니다.' : '요청에 성공했습니다.',
-          },
-          result,
-        },
-      },
+  return SwaggerResponse({
+    status,
+    description: description ?? (created ? '생성 성공' : '성공'),
+    standardSchema: z.object({
+      isSuccess: z.literal(true),
+      code: z.string().meta({ example: created ? 'COMMON201' : 'COMMON200' }),
+      message: z.string().meta({
+        example: created ? '생성에 성공했습니다.' : '요청에 성공했습니다.',
+      }),
+      result: resultSchema,
     }),
-  );
+  });
 }
 
 /**
