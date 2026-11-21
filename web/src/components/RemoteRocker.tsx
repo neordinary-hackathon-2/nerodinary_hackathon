@@ -25,16 +25,10 @@ const rockerConfig: Record<RemoteRockerType, RockerConfig> = {
     label: 'VOL',
     labelClassName: 'top-[42px] left-[5px]',
     upIcon: (
-      <MaskIcon
-        className="top-[17px] left-[13px] size-[13px] group-active/up:top-[19px] group-active/up:left-[14px] group-active/up:size-[10px]"
-        iconClassName="inset-0 bg-black/50 mask-[url(/remote/volume-up.svg)] group-hover/up:bg-black group-active/up:bg-black"
-      />
+      <MaskIcon className="top-[17px] left-[13px] size-[13px] bg-black/50 mask-[url(/remote/volume-up.svg)] mask-size-[100%_100%] group-hover/up:bg-black group-active/up:top-[19px] group-active/up:left-[14px] group-active/up:size-[10px] group-active/up:bg-black" />
     ),
     downIcon: (
-      <MaskIcon
-        className="top-[27px] left-[13px] h-[3px] w-[13px] group-active/down:top-[28px] group-active/down:left-[14px] group-active/down:h-[2px] group-active/down:w-[10px]"
-        iconClassName="inset-0 bg-black/50 mask-[url(/remote/volume-down.svg)] group-hover/down:bg-black group-active/down:bg-black"
-      />
+      <MaskIcon className="top-[27px] left-[13px] h-[3px] w-[13px] bg-black/50 mask-[url(/remote/volume-down.svg)] mask-size-[100%_100%] group-hover/down:bg-black group-active/down:top-[28px] group-active/down:left-[14px] group-active/down:h-[2px] group-active/down:w-[10px] group-active/down:bg-black" />
     ),
   },
   channel: {
@@ -43,16 +37,10 @@ const rockerConfig: Record<RemoteRockerType, RockerConfig> = {
     label: 'ch',
     labelClassName: 'top-[39px] left-[9px]',
     upIcon: (
-      <MaskIcon
-        className="top-[12px] left-[8px] h-[13px] w-[23px] group-active/up:top-[16px] group-active/up:left-[11px] group-active/up:h-[9px] group-active/up:w-[16px]"
-        iconClassName="-top-[50%] -left-[7.1429%] h-[200%] w-[114.2857%] bg-black/50 mask-[url(/icons/up.svg)] group-hover/up:bg-black group-active/up:bg-black"
-      />
+      <MaskIcon className="top-[12px] left-[8px] h-[13px] w-[23px] bg-black/50 mask-[url(/icons/up.svg)] mask-size-[114.2857%_200%] mask-center group-hover/up:bg-black group-active/up:top-[16px] group-active/up:left-[11px] group-active/up:h-[9px] group-active/up:w-[16px] group-active/up:bg-black" />
     ),
     downIcon: (
-      <MaskIcon
-        className="top-[21px] left-[8px] h-[13px] w-[23px] group-active/down:left-[11px] group-active/down:h-[9px] group-active/down:w-[16px]"
-        iconClassName="-top-[50%] -left-[7.1429%] h-[200%] w-[114.2857%] bg-black/50 mask-[url(/icons/down.svg)] group-hover/down:bg-black group-active/down:bg-black"
-      />
+      <MaskIcon className="top-[21px] left-[8px] h-[13px] w-[23px] bg-black/50 mask-[url(/icons/down.svg)] mask-size-[114.2857%_200%] mask-center group-hover/down:bg-black group-active/down:left-[11px] group-active/down:h-[9px] group-active/down:w-[16px] group-active/down:bg-black" />
     ),
   },
 };

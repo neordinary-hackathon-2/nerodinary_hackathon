@@ -28,16 +28,10 @@ const buttonName: Record<RemoteButtonType, string | undefined> = {
 
 const renderContent: Record<RemoteButtonType, (label?: string) => ReactNode> = {
   power: () => (
-    <MaskIcon
-      className="top-[2px] left-[3px] size-[18px]"
-      iconClassName="-top-[7.1429%] -left-[7.1429%] size-[114.2857%] bg-ink-900 mask-[url(/icons/power.svg)] group-active:bg-white"
-    />
+    <MaskIcon className="top-[2px] left-[3px] size-[18px] bg-ink-900 mask-[url(/icons/power.svg)] mask-size-[114.2857%] mask-center group-active:bg-white" />
   ),
   refresh: () => (
-    <MaskIcon
-      className="top-[3px] left-[5px] size-[14.8425px] group-active:top-[4px] group-active:left-[6px] group-active:size-[12.8635px]"
-      iconClassName="-top-[7.1429%] -left-[7.1429%] size-[114.2857%] bg-black/50 mask-[url(/icons/refresh.svg)] group-hover:bg-ink-900 group-active:bg-black"
-    />
+    <MaskIcon className="top-[3px] left-[5px] size-[14.8425px] bg-black/50 mask-[url(/icons/refresh.svg)] mask-size-[114.2857%] mask-center group-hover:bg-ink-900 group-active:top-[4px] group-active:left-[6px] group-active:size-[12.8635px] group-active:bg-black" />
   ),
   number: (label) => (
     <span className="font-press-start text-[11px] leading-none text-black/50 group-hover:text-black group-active:text-black">
