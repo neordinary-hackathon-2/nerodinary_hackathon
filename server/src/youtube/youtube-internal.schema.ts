@@ -86,7 +86,7 @@ export const youtubeSyncRequestSchema = z
       .optional()
       .meta({
         description:
-          '재검증에서 삭제·비공개·임베드 불가가 확인돼 이 채널에서 지울 영상의 YouTube ID.',
+          '재검증에서 삭제·비공개·임베드 불가가 확인돼 이 채널에서 지울 영상의 YouTube ID. 유지 개수를 넘는 영상은 여기 없어도 서버가 오래된 것부터 지운다.',
         example: ['YOUTUBE_VIDEO_ID'],
       }),
   })
@@ -108,6 +108,11 @@ export const youtubeSyncResultSchema = z
     acceptedCount: z.number().int().nonnegative().meta({ example: 1 }),
     rejectedCount: z.number().int().nonnegative().meta({ example: 0 }),
     rejected: z.array(rejectedVideoSchema),
+    evictedCount: z.number().int().nonnegative().meta({
+      description:
+        '채널당 유지 개수를 넘어, 저장된 지 오래된 순서로 지운 영상 수.',
+      example: 0,
+    }),
   })
   .meta({ id: 'YoutubeSyncResultDto' });
 

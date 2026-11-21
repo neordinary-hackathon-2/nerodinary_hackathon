@@ -66,6 +66,31 @@ describe('searchVideoIds', () => {
     expect(page).toEqual({ videoIds: ['a'], nextPageToken: 'p2' });
   });
 
+  it('publishedAfter 를 주면 검색에 붙이고, 없으면 붙이지 않는다', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve(json({ items: [] })),
+    );
+    const youtube = client(fetchFn);
+
+    await youtube.searchVideoIds({
+      query: '가',
+      duration: 'medium',
+      pageToken: null,
+      publishedAfter: '2026-11-19T00:00:00.000Z',
+    });
+    await youtube.searchVideoIds({
+      query: '가',
+      duration: 'medium',
+      pageToken: null,
+    });
+
+    const [withWindow, withoutWindow] = fetchFn.mock.calls.map(
+      ([url]) => new URL(url as string).searchParams,
+    );
+    expect(withWindow.get('publishedAfter')).toBe('2026-11-19T00:00:00.000Z');
+    expect(withoutWindow.has('publishedAfter')).toBe(false);
+  });
+
   it('할당량 초과 응답을 구분할 수 있는 오류로 던진다', async () => {
     const fetchFn: FetchLike = () =>
       Promise.resolve(

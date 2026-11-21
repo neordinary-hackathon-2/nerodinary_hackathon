@@ -59,6 +59,7 @@ describe('내부 YouTube 수집 API', () => {
             seedToken: TOKEN,
             minDurationSeconds: 600,
             maxDurationSeconds: 7200,
+            targetPerChannel: 100,
           },
         },
       ],
@@ -91,6 +92,7 @@ describe('내부 YouTube 수집 API', () => {
       acceptedCount: 1,
       rejectedCount: 0,
       rejected: [],
+      evictedCount: 0,
     });
   });
 

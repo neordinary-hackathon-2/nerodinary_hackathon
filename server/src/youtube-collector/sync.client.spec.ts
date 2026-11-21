@@ -45,7 +45,12 @@ describe('createSyncClient', () => {
   it('sync 는 서버 계약 스키마를 통과하는 본문을 보내고 결과를 돌려준다', async () => {
     const fetchFn = vi.fn<FetchLike>(() =>
       Promise.resolve(
-        envelope({ acceptedCount: 1, rejectedCount: 0, rejected: [] }),
+        envelope({
+          acceptedCount: 1,
+          rejectedCount: 0,
+          rejected: [],
+          evictedCount: 2,
+        }),
       ),
     );
     const request = {
@@ -76,6 +81,7 @@ describe('createSyncClient', () => {
       acceptedCount: 1,
       rejectedCount: 0,
       rejected: [],
+      evictedCount: 2,
     });
   });
 

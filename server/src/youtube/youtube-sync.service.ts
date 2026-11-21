@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, eq, inArray } from 'drizzle-orm';
 import { BusinessException } from '../common/exception/business.exception.js';
 import { ErrorCodes } from '../common/exception/error-code.js';
 import { youtubeConfig } from '../config/youtube.config.js';
@@ -58,6 +58,7 @@ export class YoutubeSyncService {
   /**
    * 한 채널의 영상을 저장·갱신하고, 재생할 수 없게 된 영상을 지운다.
    * 저장 조건(공개·임베드·길이)은 수집기가 걸렀더라도 여기서 다시 확인한다.
+   * 그 뒤 채널당 유지 개수를 넘는 만큼, 저장된 지 오래된 영상부터 지운다.
    */
   async sync(request: YoutubeSyncRequestDto): Promise<YoutubeSyncResultDto> {
     const [channel] = await this.db
@@ -76,7 +77,7 @@ export class YoutubeSyncService {
     const removedVideoIds = request.removedVideoIds ?? [];
     const now = new Date();
 
-    await this.db.transaction(async (tx) => {
+    const evictedCount = await this.db.transaction(async (tx) => {
       // videos 에는 (채널, 영상) 중복을 막는 DB 제약이 없다. 같은 영상이 여러 채널에 들어갈 수 있고,
       // 한 채널 안의 중복은 여기서 "이미 있으면 갱신, 없으면 추가"로 막는다.
       const existingIds =
@@ -143,16 +144,42 @@ export class YoutubeSyncService {
             ),
           );
       }
+
+      // 새 영상이 들어와 유지 개수를 넘으면 넘는 만큼만 지운다.
+      // 새 영상이 없으면 넘지 않으므로, 수집이 실패한 날에는 아무것도 지워지지 않는다.
+      const [{ stored }] = await tx
+        .select({ stored: count() })
+        .from(videos)
+        .where(eq(videos.appChannelId, channel.id));
+      const excess = stored - this.config.targetPerChannel;
+      if (excess <= 0) {
+        return 0;
+      }
+      // createdAt 은 초 단위라 한 요청으로 들어온 영상끼리 같다. id 로 순서를 가른다.
+      const oldest = await tx
+        .select({ id: videos.id })
+        .from(videos)
+        .where(eq(videos.appChannelId, channel.id))
+        .orderBy(asc(videos.createdAt), asc(videos.id))
+        .limit(excess);
+      await tx.delete(videos).where(
+        inArray(
+          videos.id,
+          oldest.map((row) => row.id),
+        ),
+      );
+      return oldest.length;
     });
 
     this.logger.log(
-      `sync channel=${request.channelNumber} accepted=${accepted.length} rejected=${rejected.length} removed=${removedVideoIds.length}`,
+      `sync channel=${request.channelNumber} accepted=${accepted.length} rejected=${rejected.length} removed=${removedVideoIds.length} evicted=${evictedCount}`,
     );
 
     return {
       acceptedCount: accepted.length,
       rejectedCount: rejected.length,
       rejected,
+      evictedCount,
     };
   }
 }
