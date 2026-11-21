@@ -2,6 +2,7 @@ import {Suspense} from 'react';
 
 import Header from '@/components/Header';
 import PixelTv from '@/components/PixelTv';
+import Remote from '@/components/Remote';
 import TvPlayer from '@/components/TvPlayer';
 import {SAMPLE_VIDEO_URL, isTvScreen} from '@/constants/tv';
 import type {TvScreen} from '@/constants/tv';
@@ -21,6 +22,9 @@ const HomeContent = ({screen}: HomeContentProps) => {
         <PixelTv screen={screen} channelLabel={channelLabel}>
           {screen === 'live' && <TvPlayer src={SAMPLE_VIDEO_URL} />}
         </PixelTv>
+      </div>
+      <div className="mt-4 flex justify-center">
+        <Remote />
       </div>
     </>
   );
