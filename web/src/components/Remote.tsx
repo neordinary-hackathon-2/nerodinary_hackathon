@@ -1,4 +1,5 @@
 import RemoteButton from './RemoteButton';
+import RemoteRocker from './RemoteRocker';
 
 const NUMBER_KEY_ROWS = [
   ['1', '2', '3'],
@@ -33,8 +34,8 @@ const Remote = () => {
         BAP-TV
       </p>
       <div className="absolute top-[69px] left-[10px] h-2.5 w-[171px] bg-[url(/remote/dither.svg)] bg-no-repeat" />
-      <RemoteButton type="volume" className="absolute top-[90px] left-[24px]" />
-      <RemoteButton
+      <RemoteRocker type="volume" className="absolute top-[90px] left-[24px]" />
+      <RemoteRocker
         type="channel"
         className="absolute top-[90px] left-[123px]"
       />
