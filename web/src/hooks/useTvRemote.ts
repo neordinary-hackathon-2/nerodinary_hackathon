@@ -10,7 +10,6 @@ import {
 import type {TvScreen} from '@/constants/tv';
 import useRandomVideos from '@/hooks/useRandomVideos';
 import {isInApp, postToApp} from '@/utils/appBridge';
-import {isIOS} from '@/utils/device';
 
 type TvVideo = RandomChannelVideosDto['videos'][number];
 
@@ -54,7 +53,7 @@ const getTvView = ({
  * - 채널 ▲▼: 1~9번 순환 (0번 컬러바는 숫자 키 0으로만 간다)
  * - 채널별 영상: 처음 들어갈 때 랜덤으로 정하고 접속 동안 유지. 새로고침은 지금 채널 영상만 바꾼다
  * - 볼륨: 웹은 유튜브 플레이어 볼륨, 앱 안에서는 앱에 시스템 볼륨 조절을 요청한다.
- *   iOS 웹은 코드로 음량을 바꿀 수 없어 기기 버튼을 쓰라는 안내를 띄운다
+ *   접속 후 처음 누를 때 한 번 기기 음량 버튼 안내를 띄운다
  */
 const useTvRemote = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
@@ -70,6 +69,8 @@ const useTvRemote = () => {
   const [volume, setVolume] = useState(1);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isVolumeNoticeOpen, setIsVolumeNoticeOpen] = useState(false);
+  // 이번 접속에서 음량 안내를 본 적이 있는지. 처음 볼륨 버튼을 누를 때만 안내를 띄운다.
+  const [hasSeenVolumeNotice, setHasSeenVolumeNotice] = useState(false);
 
   const {channels, isPending, isError, refetch} = useRandomVideos(isPowerOn);
 
@@ -172,13 +173,14 @@ const useTvRemote = () => {
 
   const changeVolume = (direction: AppVolumeDirection) => {
     postToApp({type: 'feedback', feedback: 'tap'});
+    // 기기·환경에 따라(iOS Safari 등) 화면 속 음량 조절이 안 될 수 있어,
+    // 이번 접속에서 처음 누를 때 한 번만 기기 음량 버튼 안내를 띄운다. 음량 조절은 그대로 한다.
+    if (!hasSeenVolumeNotice) {
+      setHasSeenVolumeNotice(true);
+      setIsVolumeNoticeOpen(true);
+    }
     if (isInApp()) {
       postToApp({type: 'volume', direction});
-      return;
-    }
-    // iOS 웹은 YouTube 플레이어 음량을 코드로 바꿀 수 없어(Safari 정책) 기기 버튼 안내를 띄운다.
-    if (isIOS()) {
-      setIsVolumeNoticeOpen(true);
       return;
     }
     const delta = direction === 'up' ? VOLUME_STEP : -VOLUME_STEP;
