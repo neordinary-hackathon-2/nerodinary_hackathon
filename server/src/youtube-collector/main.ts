@@ -31,6 +31,8 @@ const envSchema = z.object({
   FRESH_WINDOW_DAYS: z.coerce.number().int().min(1).default(7),
   SEARCH_CALL_BUDGET: z.coerce.number().int().min(0).max(100).default(60),
   SEARCH_CALLS_PER_CHANNEL: z.coerce.number().int().min(0).max(100).default(6),
+  // 워크플로 제한이 15분이라, 재검증·검색이 길어져도 동기화할 시간을 5분 남긴다.
+  SEARCH_TIME_LIMIT_SECONDS: z.coerce.number().int().min(0).default(600),
   MIN_DURATION_SECONDS: z.coerce
     .number()
     .int()
@@ -68,6 +70,9 @@ function printReport(report: CollectorReport, dryRun: boolean): void {
     `search.list 호출 ${report.searchCalls}회, 종료 사유: ${report.stoppedBy}, 재검증 실패 ${report.reverifyFailed}건`,
   );
 }
+
+/** 진행·재시도 로그는 표 출력(stdout)과 섞이지 않게 stderr 로 보낸다. */
+const log = (message: string) => console.warn(message);
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -125,6 +130,7 @@ async function main(): Promise<void> {
     server = createSyncClient({
       baseUrl: env.SYNC_API_BASE_URL,
       token: env.SEED_TOKEN,
+      log,
     });
   }
 
@@ -134,9 +140,10 @@ async function main(): Promise<void> {
         apiKey: env.YOUTUBE_API_KEY,
         regionCode: env.YOUTUBE_REGION_CODE,
         relevanceLanguage: env.YOUTUBE_RELEVANCE_LANGUAGE,
+        log,
       }),
       server,
-      log: (message) => console.warn(message),
+      log,
     },
     {
       targetPerChannel: env.TARGET_PER_CHANNEL,
@@ -144,6 +151,7 @@ async function main(): Promise<void> {
       freshWindowDays: env.FRESH_WINDOW_DAYS,
       searchCallBudget: env.SEARCH_CALL_BUDGET,
       searchCallsPerChannel: env.SEARCH_CALLS_PER_CHANNEL,
+      searchTimeLimitMs: env.SEARCH_TIME_LIMIT_SECONDS * 1_000,
       limits: {
         minSeconds: env.MIN_DURATION_SECONDS,
         maxSeconds: env.MAX_DURATION_SECONDS,
