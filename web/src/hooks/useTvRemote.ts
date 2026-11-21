@@ -9,6 +9,7 @@ import {
   VOLUME_STEP,
 } from '@/constants/tv';
 import type {TvScreen} from '@/constants/tv';
+import useIsOnline from '@/hooks/useIsOnline';
 import useRandomVideos from '@/hooks/useRandomVideos';
 import {isInApp, postToApp} from '@/utils/appBridge';
 
@@ -21,20 +22,27 @@ interface TvView {
 
 const getTvView = ({
   isPowerOn,
+  isOnline,
   isPending,
   hasNoChannels,
   channelNumber,
   video,
 }: {
   isPowerOn: boolean;
+  isOnline: boolean;
   isPending: boolean;
   hasNoChannels: boolean;
   channelNumber: number;
   video: TvVideo | undefined;
 }): TvView => {
-  // LED 표기: 꺼짐·로딩 "CH -", 에러·방송 준비 중 "CH --", 시청 중 "CH 번호" (03-flow)
+  // LED 표기: 꺼짐·로딩 "CH -", 에러·방송 준비 중·네트워크 끊김 "CH --", 시청 중 "CH 번호" (03-flow)
   if (!isPowerOn) {
     return {screen: 'off', channelLabel: 'CH -'};
+  }
+  // 네트워크가 끊기면 영상·목록을 불러올 수 없으므로 신호 없음 화면을 띄운다.
+  // 오프라인 동안 목록 요청은 멈춰 isPending이 계속 true라서 로딩보다 먼저 본다. 다시 연결되면 요청이 이어진다.
+  if (!isOnline) {
+    return {screen: 'noSignal', channelLabel: 'CH --'};
   }
   if (isPending) {
     return {screen: 'loading', channelLabel: 'CH -'};
@@ -75,6 +83,7 @@ const useTvRemote = () => {
   // 이번 접속에서 음량 안내를 본 적이 있는지. 처음 볼륨 버튼을 누를 때만 안내를 띄운다.
   const [hasSeenVolumeNotice, setHasSeenVolumeNotice] = useState(false);
 
+  const isOnline = useIsOnline();
   const {channels, isPending, isError, refetch} = useRandomVideos(isPowerOn);
 
   const channel = channels?.find(
@@ -92,6 +101,7 @@ const useTvRemote = () => {
   const hasNoChannels = isError || channels?.length === 0;
   const {screen, channelLabel} = getTvView({
     isPowerOn,
+    isOnline,
     isPending,
     hasNoChannels,
     channelNumber,
