@@ -65,6 +65,7 @@ src/
 ### shared/ (레포 루트)
 
 - 엔티티는 `shared/entities/`, 요청/응답은 `shared/api/`에 두고 엔티티에서 파생시킨다(`.pick()` 등). 각 `index.ts`에 export를 추가한다.
+- `shared/`에는 **FE가 쓰는 것만** 둔다. FE가 호출하지 않는 내부 API(예: 수집기용 `/api/internal/youtube/*`)의 스키마는 서버 안에 둔다(`src/youtube/youtube-internal.schema.ts`). 엔티티에서 파생시키는 방식은 같다.
 - `shared/`의 파일은 `zod`와 그 폴더 안의 파일만 import한다. Nest·Drizzle을 import하면 FE 타입체크가 깨진다.
 - 서버에서는 **상대 경로**로 가져온다: `'../../../shared/index.js'`. 경로 별칭은 런타임에 깨진다.
 - 필드를 지우거나 이름을 바꾸면 `web/`·`app/` 사용처를 같은 PR에서 고친다. FE에는 CI가 없어 자동으로 잡히지 않는다.

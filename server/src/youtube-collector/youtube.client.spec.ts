@@ -112,12 +112,30 @@ describe('fetchVideoDetails', () => {
       title: '제목 v0',
       thumbnailUrl: 'https://i.ytimg.com/v0.jpg',
       durationSeconds: 720,
-      creatorChannelId: 'UC1',
-      creatorChannelTitle: '제작자',
+      sourceYoutubeChannelId: 'UC1',
+      sourceChannelTitle: '제작자',
       publishedAt: '2026-11-20T12:00:00Z',
       embeddable: true,
       privacyStatus: 'public',
     });
+  });
+
+  it('medium 썸네일이 없으면 다른 크기를 쓰고, 하나도 없으면 null 이다', async () => {
+    const withHigh = videoItem('a');
+    withHigh.snippet.thumbnails = {
+      high: { url: 'https://i.ytimg.com/a-high.jpg' },
+    } as never;
+    const withNone = videoItem('b');
+    withNone.snippet.thumbnails = {} as never;
+    const fetchFn: FetchLike = () =>
+      Promise.resolve(json({ items: [withHigh, withNone] }));
+
+    const lookup = await client(fetchFn).fetchVideoDetails(['a', 'b']);
+
+    expect(lookup.found.get('a')?.thumbnailUrl).toBe(
+      'https://i.ytimg.com/a-high.jpg',
+    );
+    expect(lookup.found.get('b')?.thumbnailUrl).toBeNull();
   });
 
   it('응답에 없는 ID 는 found 에도 failedIds 에도 넣지 않는다 (삭제된 영상)', async () => {

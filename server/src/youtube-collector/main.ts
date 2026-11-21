@@ -11,12 +11,12 @@ import { createYoutubeClient } from './youtube.client.js';
  *
  * --dry-run             YouTube 는 호출하되 서버에는 보내지 않는다.
  * --channels-file=경로  서버 대신 JSON 파일에서 채널 설정을 읽는다. --dry-run 과 함께만 쓴다.
- * --channel=번호        해당 채널만 처리한다.
+ * --channel=코드        해당 코드의 채널만 처리한다.
  */
 const envSchema = z.object({
   YOUTUBE_API_KEY: z.string().min(1),
   SYNC_API_BASE_URL: z.string().url().optional(),
-  SYNC_TOKEN: z.string().min(1).optional(),
+  SEED_TOKEN: z.string().min(1).optional(),
   TARGET_PER_CHANNEL: z.coerce.number().int().min(1).default(100),
   SEARCH_CALL_BUDGET: z.coerce.number().int().min(0).max(100).default(60),
   SEARCH_CALLS_PER_CHANNEL: z.coerce.number().int().min(0).max(100).default(6),
@@ -30,11 +30,12 @@ function printReport(report: CollectorReport, dryRun: boolean): void {
   console.log(dryRun ? '\n[dry-run] 서버에는 보내지 않았습니다.' : '');
   console.table(
     report.channels.map((c) => ({
-      채널: c.channelId,
-      '실행 전': c.activeBefore,
-      비활성화: c.deactivated,
+      채널: c.channelCode,
+      '실행 전': c.storedKnown ? c.storedBefore : '모름',
+      삭제: c.removed,
       추가: c.added,
-      '실행 후': `${c.activeAfter}/${c.target}`,
+      '실행 후': c.storedKnown ? `${c.storedAfter}/${c.target}` : `+${c.added}`,
+      '서버 제외': c.rejected,
       검색: c.searchCalls,
       '새 후보': c.candidates,
       통과: c.eligible,
@@ -73,10 +74,7 @@ async function main(): Promise<void> {
 
   const dryRun = values['dry-run'];
   const channelsFile = values['channels-file'];
-  const onlyChannelId =
-    values.channel === undefined
-      ? undefined
-      : z.coerce.number().int().parse(values.channel);
+  const onlyChannelCode = values.channel;
 
   let server;
   if (channelsFile) {
@@ -85,14 +83,14 @@ async function main(): Promise<void> {
     }
     server = createFileChannelSource(channelsFile);
   } else {
-    if (!env.SYNC_API_BASE_URL || !env.SYNC_TOKEN) {
+    if (!env.SYNC_API_BASE_URL || !env.SEED_TOKEN) {
       throw new Error(
-        'SYNC_API_BASE_URL 과 SYNC_TOKEN 이 필요합니다. 서버 없이 실측하려면 --dry-run --channels-file 을 쓰세요.',
+        'SYNC_API_BASE_URL 과 SEED_TOKEN 이 필요합니다. 서버 없이 실측하려면 --dry-run --channels-file 을 쓰세요.',
       );
     }
     server = createSyncClient({
       baseUrl: env.SYNC_API_BASE_URL,
-      token: env.SYNC_TOKEN,
+      token: env.SEED_TOKEN,
     });
   }
 
@@ -115,7 +113,7 @@ async function main(): Promise<void> {
         maxSeconds: env.MAX_DURATION_SECONDS,
       },
       dryRun,
-      onlyChannelId,
+      onlyChannelCode,
     },
   );
 

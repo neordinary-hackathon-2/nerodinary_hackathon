@@ -25,13 +25,18 @@ export function isPlayable(video: VideoDetail): boolean {
   return video.embeddable && video.privacyStatus === 'public';
 }
 
-/** 새로 저장해도 되는 영상인지. 재생 가능하고 길이가 범위 안(경계 포함)이어야 한다. */
+/** 서버가 받을 수 있는 영상인지. 재생 가능하고, 저장에 필수인 썸네일이 있어야 한다. */
+export function isStorable(video: VideoDetail): boolean {
+  return isPlayable(video) && video.thumbnailUrl !== null;
+}
+
+/** 새로 저장해도 되는 영상인지. 저장 가능하고 길이가 범위 안(경계 포함)이어야 한다. */
 export function isEligible(
   video: VideoDetail,
   limits: DurationLimits,
 ): boolean {
   return (
-    isPlayable(video) &&
+    isStorable(video) &&
     video.durationSeconds >= limits.minSeconds &&
     video.durationSeconds <= limits.maxSeconds
   );

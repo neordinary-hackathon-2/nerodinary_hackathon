@@ -5,7 +5,7 @@ name: YouTube Collect
 #
 # 필요한 GitHub 설정 (Settings → Secrets and variables → Actions)
 #   Secrets  : YOUTUBE_API_KEY   (YouTube Data API 키. search.list 는 하루 100회까지)
-#              SYNC_TOKEN        (서버 내부 동기화 API 토큰)
+#              SEED_TOKEN        (서버 내부 API 토큰. X-Seed-Token 헤더로 보낸다)
 #   Variables: SYNC_API_BASE_URL (예: https://<서버 주소>/api)
 #
 # 서버의 내부 API(/internal/youtube/*)가 배포되기 전에는 dry_run 으로만 실행한다.
@@ -18,7 +18,7 @@ on:
         type: boolean
         default: true
       channel:
-        description: 이 채널 번호만 처리한다 (비우면 전체)
+        description: 이 채널 코드만 처리한다 (비우면 전체)
         type: string
         required: false
   # 서버 내부 API 가 배포되면 주석을 풀어 매일 한 번 실행한다. (20:00 UTC = 05:00 KST)
@@ -55,7 +55,7 @@ jobs:
       - name: Collect
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          SEED_TOKEN: ${{ secrets.SEED_TOKEN }}
           SYNC_API_BASE_URL: ${{ vars.SYNC_API_BASE_URL }}
           # 예약 실행에는 inputs 가 없으므로 실제 동기화로 동작한다.
           DRY_RUN: ${{ inputs.dry_run }}

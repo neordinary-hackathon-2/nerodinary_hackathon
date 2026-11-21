@@ -5,7 +5,7 @@ import type {
   VideoDetail,
 } from './collector.types.js';
 import type { CollectorServer } from './sync.client.js';
-import { isEligible, isPlayable } from './video-filter.js';
+import { isEligible, isStorable } from './video-filter.js';
 import {
   isQuotaError,
   YoutubeApiError,
@@ -26,8 +26,8 @@ export interface CollectorOptions {
   limits: DurationLimits;
   /** true 면 YouTube 는 실제로 호출하되 서버에는 아무것도 보내지 않는다. */
   dryRun: boolean;
-  /** 지정하면 이 채널만 처리한다. 실측할 때 할당량을 아끼는 용도. */
-  onlyChannelId?: number;
+  /** 지정하면 이 코드의 채널만 처리한다. 실측할 때 할당량을 아끼는 용도. */
+  onlyChannelCode?: string;
 }
 
 export interface CollectorDeps {
@@ -37,12 +37,19 @@ export interface CollectorDeps {
 }
 
 export interface ChannelReport {
-  channelId: number;
+  channelCode: string;
   target: number;
-  activeBefore: number;
-  deactivated: number;
+  /**
+   * 서버가 저장된 영상 목록(storedVideoIds)을 내려줬는지.
+   * false 면 현재 개수를 몰라 재검증 없이 매번 목표 개수만큼 새로 찾는다.
+   */
+  storedKnown: boolean;
+  storedBefore: number;
+  removed: number;
   added: number;
-  activeAfter: number;
+  storedAfter: number;
+  /** 서버가 검증에서 제외한 영상 수. 동기화하지 않았으면 0. */
+  rejected: number;
   searchCalls: number;
   /** 검색으로 받은 ID 중 처음 보는 것의 수. */
   candidates: number;
@@ -68,18 +75,31 @@ interface ChannelPlan {
   report: ChannelReport;
   aliveCount: number;
   refreshed: VideoDetail[];
-  deactivateVideoIds: string[];
+  removedVideoIds: string[];
   added: VideoDetail[];
   queue: SearchQuery[];
 }
 
-function toSyncVideo(video: VideoDetail): SyncVideo {
-  const {
-    embeddable: _embeddable,
-    privacyStatus: _privacyStatus,
-    ...rest
-  } = video;
-  return rest;
+function toSyncVideo(video: VideoDetail & { thumbnailUrl: string }): SyncVideo {
+  return {
+    youtubeVideoId: video.youtubeVideoId,
+    title: video.title,
+    thumbnailUrl: video.thumbnailUrl,
+    durationSeconds: video.durationSeconds,
+    publishedAt: video.publishedAt,
+    sourceYoutubeChannelId: video.sourceYoutubeChannelId,
+    sourceChannelTitle: video.sourceChannelTitle,
+    // 수집기는 공개·임베드 가능한 영상만 보낸다. 서버가 같은 조건을 다시 확인한다.
+    privacyStatus: 'public',
+    isEmbeddable: video.embeddable,
+  };
+}
+
+/** 썸네일이 있는 영상만 남긴다. isStorable 을 통과한 영상은 모두 해당한다. */
+function hasThumbnail(
+  video: VideoDetail,
+): video is VideoDetail & { thumbnailUrl: string } {
+  return video.thumbnailUrl !== null;
 }
 
 function describe(error: unknown): string {
@@ -89,8 +109,8 @@ function describe(error: unknown): string {
 /**
  * 한 번의 수집 실행.
  *
- * 1. 서버에서 채널별 검색어와 활성 영상을 읽는다.
- * 2. 활성 영상을 재검증해 재생할 수 없게 된 영상을 비활성화 대상으로 고른다.
+ * 1. 서버에서 채널별 검색어와 저장된 영상을 읽는다.
+ * 2. 저장된 영상을 재검증해 재생할 수 없게 된 영상을 삭제 대상으로 고른다.
  * 3. 채널당 목표 개수에 모자란 만큼만 새 영상을 검색한다.
  * 4. 채널별로 결과를 서버에 보낸다. 한 채널이 실패해도 나머지는 계속한다.
  */
@@ -103,47 +123,54 @@ export async function runCollector(
 
   const allChannels = await server.fetchChannels();
   const channels =
-    options.onlyChannelId === undefined
+    options.onlyChannelCode === undefined
       ? allChannels
-      : allChannels.filter((c) => c.channelId === options.onlyChannelId);
+      : allChannels.filter((c) => c.code === options.onlyChannelCode);
 
   // 한 영상은 한 채널에만 속한다. 다른 채널에 이미 있는 영상도 후보에서 뺀다.
-  const knownIds = new Set(
-    allChannels.flatMap((c) => [...c.activeVideoIds, ...c.excludedVideoIds]),
-  );
+  const knownIds = new Set(allChannels.flatMap((c) => c.storedVideoIds ?? []));
 
   const lookup = await youtube.fetchVideoDetails(
-    channels.flatMap((c) => c.activeVideoIds),
+    channels.flatMap((c) => c.storedVideoIds ?? []),
   );
 
   const plans: ChannelPlan[] = channels.map((channel) => {
+    const stored = channel.storedVideoIds ?? [];
     const refreshed: VideoDetail[] = [];
-    const deactivateVideoIds: string[] = [];
+    const removedVideoIds: string[] = [];
     let aliveCount = 0;
 
-    for (const id of channel.activeVideoIds) {
+    for (const id of stored) {
       if (lookup.failedIds.has(id)) {
         // 확인하지 못한 영상은 살아 있는 것으로 둔다.
         aliveCount += 1;
         continue;
       }
       const detail = lookup.found.get(id);
-      if (detail && isPlayable(detail)) {
+      if (detail && isStorable(detail)) {
         aliveCount += 1;
         refreshed.push(detail);
       } else {
-        deactivateVideoIds.push(id);
+        removedVideoIds.push(id);
       }
+    }
+
+    if (channel.storedVideoIds === undefined && channel.seedKeywords.length) {
+      log(
+        `채널 ${channel.code}: 서버가 저장된 영상 목록을 주지 않아 재검증을 건너뛰고 목표 개수만큼 새로 찾습니다.`,
+      );
     }
 
     return {
       report: {
-        channelId: channel.channelId,
+        channelCode: channel.code,
         target: options.targetPerChannel,
-        activeBefore: channel.activeVideoIds.length,
-        deactivated: deactivateVideoIds.length,
+        storedKnown: channel.storedVideoIds !== undefined,
+        storedBefore: stored.length,
+        removed: removedVideoIds.length,
         added: 0,
-        activeAfter: aliveCount,
+        storedAfter: aliveCount,
+        rejected: 0,
         searchCalls: 0,
         candidates: 0,
         eligible: 0,
@@ -151,7 +178,7 @@ export async function runCollector(
       },
       aliveCount,
       refreshed,
-      deactivateVideoIds,
+      removedVideoIds,
       added: [],
       queue: channel.seedKeywords.flatMap((query) =>
         SEARCH_DURATIONS.map((duration) => ({
@@ -209,7 +236,7 @@ export async function runCollector(
         }
         // 일시적인 오류는 이 검색어·구간만 버리고 계속한다.
         log(
-          `채널 ${plan.report.channelId} 검색 실패 ("${query.query}", ${query.duration}): ${describe(error)}`,
+          `채널 ${plan.report.channelCode} 검색 실패 ("${query.query}", ${query.duration}): ${describe(error)}`,
         );
         continue;
       }
@@ -246,24 +273,35 @@ export async function runCollector(
 
   for (const plan of plans) {
     plan.report.added = plan.added.length;
-    plan.report.activeAfter = plan.aliveCount + plan.added.length;
+    plan.report.storedAfter = plan.aliveCount + plan.added.length;
 
-    const upserts = [...plan.refreshed, ...plan.added].map(toSyncVideo);
+    const videos = [...plan.refreshed, ...plan.added]
+      .filter(hasThumbnail)
+      .map(toSyncVideo);
     if (
       options.dryRun ||
-      (upserts.length === 0 && plan.deactivateVideoIds.length === 0)
+      (videos.length === 0 && plan.removedVideoIds.length === 0)
     ) {
       continue;
     }
     try {
-      await server.sync({
-        channelId: plan.report.channelId,
-        upserts,
-        deactivateVideoIds: plan.deactivateVideoIds,
+      const result = await server.sync({
+        channelCode: plan.report.channelCode,
+        videos,
+        // 지울 영상이 없으면 필드를 생략해, 이 필드를 모르는 서버와도 통신할 수 있게 한다.
+        ...(plan.removedVideoIds.length > 0
+          ? { removedVideoIds: plan.removedVideoIds }
+          : {}),
       });
+      plan.report.rejected = result.rejectedCount;
+      for (const item of result.rejected) {
+        log(
+          `채널 ${plan.report.channelCode}: 서버가 ${item.youtubeVideoId} 를 제외했습니다 (${item.reason})`,
+        );
+      }
     } catch (error) {
       plan.report.syncError = describe(error);
-      log(`채널 ${plan.report.channelId} 동기화 실패: ${describe(error)}`);
+      log(`채널 ${plan.report.channelCode} 동기화 실패: ${describe(error)}`);
     }
   }
 

@@ -74,6 +74,13 @@ const searchSchema = z.object({
   nextPageToken: z.string().optional(),
 });
 
+const thumbnailSchema = z.object({ url: z.string() }).optional();
+const thumbnailsSchema = z.object({
+  medium: thumbnailSchema,
+  high: thumbnailSchema,
+  default: thumbnailSchema,
+});
+
 const videosSchema = z.object({
   items: z
     .array(
@@ -84,9 +91,7 @@ const videosSchema = z.object({
           publishedAt: z.string(),
           channelId: z.string(),
           channelTitle: z.string().default(''),
-          thumbnails: z
-            .object({ medium: z.object({ url: z.string() }).optional() })
-            .optional(),
+          thumbnails: thumbnailsSchema.optional(),
         }),
         contentDetails: z.object({ duration: z.string() }),
         status: z.object({
@@ -97,6 +102,18 @@ const videosSchema = z.object({
     )
     .default([]),
 });
+
+/** medium 을 우선 쓰고, 없으면 다른 크기로 대신한다. 하나도 없으면 null. */
+function pickThumbnail(
+  thumbnails: z.infer<typeof thumbnailsSchema> | undefined,
+): string | null {
+  return (
+    thumbnails?.medium?.url ??
+    thumbnails?.high?.url ??
+    thumbnails?.default?.url ??
+    null
+  );
+}
 
 export function createYoutubeClient(
   options: YoutubeClientOptions,
@@ -172,11 +189,11 @@ export function createYoutubeClient(
             lookup.found.set(item.id, {
               youtubeVideoId: item.id,
               title: item.snippet.title,
-              thumbnailUrl: item.snippet.thumbnails?.medium?.url ?? null,
+              thumbnailUrl: pickThumbnail(item.snippet.thumbnails),
               durationSeconds:
                 parseIsoDuration(item.contentDetails.duration) ?? 0,
-              creatorChannelId: item.snippet.channelId,
-              creatorChannelTitle: item.snippet.channelTitle,
+              sourceYoutubeChannelId: item.snippet.channelId,
+              sourceChannelTitle: item.snippet.channelTitle,
               publishedAt: item.snippet.publishedAt,
               embeddable: item.status.embeddable,
               privacyStatus: item.status.privacyStatus,

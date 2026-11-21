@@ -1,5 +1,10 @@
 import type { VideoDetail } from './collector.types.js';
-import { isEligible, isPlayable, parseIsoDuration } from './video-filter.js';
+import {
+  isEligible,
+  isPlayable,
+  isStorable,
+  parseIsoDuration,
+} from './video-filter.js';
 
 const limits = { minSeconds: 600, maxSeconds: 7200 };
 
@@ -7,10 +12,10 @@ function video(overrides: Partial<VideoDetail> = {}): VideoDetail {
   return {
     youtubeVideoId: 'vid',
     title: '제목',
-    thumbnailUrl: null,
+    thumbnailUrl: 'https://i.ytimg.com/vid.jpg',
     durationSeconds: 900,
-    creatorChannelId: 'UC1',
-    creatorChannelTitle: '제작자',
+    sourceYoutubeChannelId: 'UC1',
+    sourceChannelTitle: '제작자',
     publishedAt: '2026-11-20T12:00:00Z',
     embeddable: true,
     privacyStatus: 'public',
@@ -57,6 +62,14 @@ describe('isEligible', () => {
     expect(isEligible(video({ privacyStatus: 'unlisted' }), limits)).toBe(
       false,
     );
+  });
+});
+
+describe('isStorable', () => {
+  it('썸네일이 없으면 서버가 받을 수 없으므로 저장 대상이 아니다', () => {
+    expect(isStorable(video())).toBe(true);
+    expect(isStorable(video({ thumbnailUrl: null }))).toBe(false);
+    expect(isEligible(video({ thumbnailUrl: null }), limits)).toBe(false);
   });
 });
 
