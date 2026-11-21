@@ -53,6 +53,7 @@ export class YoutubeInternalController {
   })
   @ApiSuccess(youtubeSyncResultSchema)
   @ApiFailure(
+    ErrorCodes.BAD_REQUEST,
     ErrorCodes.VALIDATION_FAILED,
     ErrorCodes.UNAUTHORIZED,
     ErrorCodes.CHANNEL_NOT_FOUND,
