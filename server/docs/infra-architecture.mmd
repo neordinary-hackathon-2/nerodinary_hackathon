@@ -1,0 +1,59 @@
+%% AWS 인프라 구성도 — Ne(o)rdinary Hackathon (서버 파트)
+%% 수정용 소스. mermaid.live 또는 VS Code Mermaid 확장에서 열어 편집하세요.
+%% 최종 제출 이미지는 infra-architecture.svg / infra-architecture.png 를 사용합니다.
+flowchart LR
+    user["사용자 / 웹 프론트<br/>(Vercel 배포 예정)"]
+
+    subgraph cicd["① CI/CD 파이프라인 (GitHub Actions)"]
+        direction LR
+        dev["개발자<br/>git push (main)"]
+        verify["verify<br/>lint · build · test"]
+        deploy["deploy<br/>빌드 → scp 전송 → pm2 reload<br/>→ /api/health 확인"]
+        secrets["GitHub Secrets<br/>AWS 키 · SSH 키"]
+        iam["IAM: sychoi-deployer (배포 전용)<br/>배포 중에만 SSH 22 개방→회수"]
+        dev --> verify --> deploy
+        deploy -.-> secrets
+        deploy -.-> iam
+    end
+
+    subgraph lsvpc["Lightsail VPC · 172.26.0.0/16 (ap-northeast-2a)"]
+        direction LR
+        fw["🔒 방화벽: 80·443 공개(0.0.0.0/0)<br/>22(SSH) 관리자 IP /32 · 3000 외부 비공개"]
+        subgraph inst["Lightsail 인스턴스 · sychoi-api (Ubuntu 24.04 · 1GB · 54.116.233.6)"]
+            direction LR
+            caddy["Caddy :80/:443<br/>리버스 프록시 · Let's Encrypt 자동 인증서"]
+            nest["NestJS :3000 (WAS)<br/>localhost 전용 · pm2 관리"]
+            caddy -->|localhost| nest
+        end
+    end
+
+    subgraph defvpc["기본 VPC · 172.31.0.0/16"]
+        rds["Amazon RDS · sychoi-db<br/>MySQL 8.4 · db.t4g.micro · 단일 AZ<br/>스토리지 암호화 · 퍼블릭 액세스 없음<br/>🔒 3306 ← Lightsail 사설 IP 172.26.x /32 만 허용"]
+    end
+
+    user -->|HTTPS 443| caddy
+    nest -->|VPC 피어링 · MySQL 3306| rds
+    deploy -.->|scp + SSH 22 일시 개방| inst
+
+    classDef front fill:#F1F3F5,stroke:#6C757D,color:#343a40;
+    classDef ci fill:#FBF3E2,stroke:#B5842A,color:#6b5214;
+    classDef sec fill:#EEF1F4,stroke:#6C757D,color:#343a40;
+    classDef comp fill:#EAF2FB,stroke:#3B6FB0,color:#2b5a92;
+    classDef db fill:#EFEAF9,stroke:#6B4FA8,color:#59418f;
+    classDef fwcls fill:#ffffff,stroke:#D64545,color:#b02a2a;
+    class user front;
+    class dev,verify,deploy ci;
+    class secrets,iam sec;
+    class caddy,nest comp;
+    class rds db;
+    class fw fwcls;
+
+%% ─────────────────────────────────────────────
+%% 인프라 심사 항목 충족 지점
+%%  • WAS/DB 분리 : Lightsail(NestJS) ↔ RDS, 서로 다른 VPC + 피어링
+%%  • HTTPS 적용 : Caddy + Let's Encrypt 자동 인증서(443)
+%%  • DB 포트 외부 비노출 : RDS 퍼블릭 액세스 없음, 3306 사설 IP /32 만
+%%  • 불필요한 포트 비공개 : 80·443만 공개, 3000 비공개, SSH 22 한시 개방
+%%  • CI/CD 자동화 : GitHub Actions verify → deploy → health check
+%%  • 민감정보 관리 : .env.production(600), AWS·SSH 키는 GitHub Secrets
+%% ─────────────────────────────────────────────
