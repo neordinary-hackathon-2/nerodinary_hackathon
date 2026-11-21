@@ -23,6 +23,26 @@
           }
         ]
       }
+    },
+    {
+      "files": ["**/shared/api/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@nestjs/*", "drizzle-orm", "drizzle-orm/*"],
+                "message": "shared/ 는 FE와 공유된다. 서버 전용 프레임워크와 DB 모듈을 import 하지 않는다."
+              },
+              {
+                "group": ["../**", "!../entities/**"],
+                "message": "shared/api/ 는 shared/entities/ 와 shared/api/ 내부 파일만 import 한다."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
