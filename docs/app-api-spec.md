@@ -55,7 +55,7 @@
               "youtubeVideoId": "YOUTUBE_VIDEO_ID_1",
               "title": "영상 제목",
               "thumbnailUrl": "https://i.ytimg.com/...",
-              "durationSeconds": 222
+              "durationSeconds": 900
             }
           },
           {
@@ -130,7 +130,7 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
         "youtubeVideoId": "YOUTUBE_VIDEO_ID",
         "title": "영상 제목",
         "thumbnailUrl": "https://i.ytimg.com/...",
-        "durationSeconds": 222,
+        "durationSeconds": 900,
         "publishedAt": "2026-11-20T12:00:00Z",
         "sourceYoutubeChannelId": "UC_CREATOR_CHANNEL_ID",
         "sourceChannelTitle": "원본 제작자 채널명",
@@ -148,7 +148,7 @@ Actions가 YouTube Data API에서 검색·검증한 후보를 채널별로 보�
       "result": {"acceptedCount": 1, "rejectedCount": 0, "rejected": []}
     }
 
-서버는 길이 180–600초, 공개·임베드 조건을 확인하고 통과한 영상만 저장합니다. 하루 수집 때 기존 영상을 전부 삭제하지 않으며, 같은 youtubeVideoId는 중복 행 대신 갱신합니다. 기획의 채널당 8–10개는 초기 시드 수입니다. 장기 보유 개수와 교체 기준은 아직 정하지 않았습니다.
+서버는 길이 600–7,200초, 공개·임베드 조건을 확인하고 통과한 영상만 저장합니다. 하루 수집 때 기존 영상을 전부 삭제하지 않으며, 같은 youtubeVideoId는 중복 행 대신 갱신합니다. 기획의 채널당 8–10개는 초기 시드 수입니다. 장기 보유 개수와 교체 기준은 아직 정하지 않았습니다.
 
 ## 4. 오류와 구현 상태
 
