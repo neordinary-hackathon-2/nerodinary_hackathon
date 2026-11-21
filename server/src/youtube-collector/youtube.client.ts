@@ -6,7 +6,16 @@ const API_BASE = 'https://www.googleapis.com/youtube/v3';
 /** search.list 의 maxResults, videos.list 의 id 개수 상한. */
 const PAGE_SIZE = 50;
 const REQUEST_TIMEOUT_MS = 15_000;
-const QUOTA_REASONS = new Set(['quotaExceeded', 'dailyLimitExceeded']);
+/**
+ * 할당량·호출 한도 초과 사유.
+ * search.list 의 일일 한도('Search Queries per day')는 429 rateLimitExceeded 로 온다(11.22 실측).
+ */
+const QUOTA_REASONS = new Set([
+  'quotaExceeded',
+  'dailyLimitExceeded',
+  'rateLimitExceeded',
+]);
+const TOO_MANY_REQUESTS = 429;
 
 export type FetchLike = typeof fetch;
 
@@ -21,12 +30,17 @@ export class YoutubeApiError extends Error {
   }
 }
 
-/** 일일 할당량을 다 써서 더 호출해도 소용없는 오류인지. */
+/**
+ * 할당량·호출 한도를 넘어 더 호출해도 소용없는 오류인지.
+ * 429 는 사유와 관계없이 한도 초과로 본다. 잘못된 키(400·403)와 달리 다음 실행에서 풀린다.
+ */
 export function isQuotaError(error: unknown): boolean {
+  if (!(error instanceof YoutubeApiError)) {
+    return false;
+  }
   return (
-    error instanceof YoutubeApiError &&
-    error.reason !== null &&
-    QUOTA_REASONS.has(error.reason)
+    error.status === TOO_MANY_REQUESTS ||
+    (error.reason !== null && QUOTA_REASONS.has(error.reason))
   );
 }
 

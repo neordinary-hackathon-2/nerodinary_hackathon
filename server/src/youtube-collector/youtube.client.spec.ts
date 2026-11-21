@@ -110,6 +110,40 @@ describe('searchVideoIds', () => {
     expect(isQuotaError(error)).toBe(true);
   });
 
+  it('search.list 일일 한도 초과(429 rateLimitExceeded)를 할당량 오류로 본다', async () => {
+    // 11.22 YouTube Collect #3 에서 실제로 받은 응답 형태.
+    const fetchFn: FetchLike = () =>
+      Promise.resolve(
+        json(
+          {
+            error: {
+              message:
+                "Quota exceeded for quota metric 'Search Queries' and limit 'Search Queries per day'",
+              errors: [{ reason: 'rateLimitExceeded' }],
+            },
+          },
+          429,
+        ),
+      );
+
+    const error: unknown = await client(fetchFn)
+      .searchVideoIds({ query: '가', duration: 'medium', pageToken: null })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(YoutubeApiError);
+    expect(isQuotaError(error)).toBe(true);
+  });
+
+  it('403 rateLimitExceeded 도 할당량 오류로 본다', () => {
+    expect(
+      isQuotaError(new YoutubeApiError(403, 'rateLimitExceeded', 'x')),
+    ).toBe(true);
+  });
+
+  it('429 는 사유가 없어도 할당량 오류로 본다', () => {
+    expect(isQuotaError(new YoutubeApiError(429, null, 'x'))).toBe(true);
+  });
+
   it('다른 403 은 할당량 오류로 보지 않는다', () => {
     expect(isQuotaError(new YoutubeApiError(403, 'forbidden', 'x'))).toBe(
       false,

@@ -454,6 +454,26 @@ describe('runCollector', () => {
     expect(synced[0].removedVideoIds).toEqual(['gone']);
   });
 
+  it('검색 일일 한도 초과(429)는 실패가 아니라 할당량 중단으로 보고한다', async () => {
+    const youtube = fakeYoutube({
+      searchError: new YoutubeApiError(
+        429,
+        'rateLimitExceeded',
+        "Quota exceeded for quota metric 'Search Queries'",
+      ),
+    });
+    const { server } = fakeServer([channel({ seedKeywords: ['가', '나'] })]);
+
+    const report = await runCollector(
+      { youtube: youtube.client, server },
+      options,
+    );
+
+    expect(youtube.searches).toHaveLength(1);
+    expect(report.stoppedBy).toBe('quota');
+    expect(report.failed).toBe(false);
+  });
+
   it('할당량 외의 일시 오류는 해당 검색만 건너뛰고 계속한다', async () => {
     const youtube = fakeYoutube({
       searchError: new YoutubeApiError(500, 'backendError', '일시 오류'),
