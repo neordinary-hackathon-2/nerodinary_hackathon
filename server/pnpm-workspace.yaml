@@ -1,0 +1,5 @@
+allowBuilds:
+  # swagger-ui-dist가 끌고 오는 설치 통계 수집 스크립트. 실행할 필요 없음.
+  "@scarf/scarf": false
+  # drizzle-kit이 스키마(TS)를 읽을 때 쓰는 번들러 바이너리.
+  esbuild: true

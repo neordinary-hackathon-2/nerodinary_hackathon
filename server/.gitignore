@@ -1,0 +1,23 @@
+# build
+/dist
+/node_modules
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# logs
+logs
+*.log
+
+# test
+/coverage
+
+# OS / IDE
+.DS_Store
+/.idea
+/.vscode

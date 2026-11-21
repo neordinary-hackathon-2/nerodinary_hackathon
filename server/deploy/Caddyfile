@@ -1,0 +1,7 @@
+# /etc/caddy/Caddyfile
+# 도메인이 없으면 sslip.io 사용: 퍼블릭 IP가 13.125.1.2 라면 13-125-1-2.sslip.io
+# Caddy가 Let's Encrypt 인증서를 자동 발급/갱신한다. (Lightsail 방화벽에서 80, 443 오픈 필요)
+REPLACE-WITH-IP.sslip.io {
+	encode gzip
+	reverse_proxy localhost:3000
+}

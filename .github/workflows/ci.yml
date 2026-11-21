@@ -1,0 +1,39 @@
+name: Server CI
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - '.github/workflows/ci.yml'
+  workflow_call:
+
+defaults:
+  run:
+    working-directory: server
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: server/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - name: Check migrations are up to date
+        # 스키마를 바꾸고 pnpm db:generate 를 안 했으면 여기서 실패한다.
+        run: |
+          pnpm db:generate
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+            echo "::error::스키마 변경에 대한 마이그레이션이 없습니다. pnpm db:generate 후 drizzle/ 를 커밋하세요."
+            exit 1
+          fi
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm test:e2e

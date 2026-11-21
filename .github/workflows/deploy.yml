@@ -1,0 +1,98 @@
+name: Server Deploy
+
+# main에 server/ 변경이 푸시되면: 검증(CI) → 빌드 → Lightsail 인스턴스로 전송 → pm2 재시작.
+#
+# SSH(22번) 포트는 평소에 닫아 두고, 배포하는 동안에만 이 러너의 IP에 한해 열었다가 닫는다.
+#
+# 필요한 GitHub 설정 (Settings → Secrets and variables → Actions)
+#   Secrets  : AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  (Lightsail 포트 제어 권한만 가진 IAM 사용자)
+#              LIGHTSAIL_SSH_KEY                         (인스턴스 접속용 개인키 .pem 내용 전체)
+#   Variables: AWS_REGION, LIGHTSAIL_INSTANCE_NAME, LIGHTSAIL_HOST (고정 IP)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: server
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      INSTANCE: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
+      TARGET: ubuntu@${{ vars.LIGHTSAIL_HOST }}
+      SSH_OPTS: -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: server/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Package release
+        run: |
+          FILES="dist package.json pnpm-lock.yaml pnpm-workspace.yaml ecosystem.config.cjs deploy/remote-deploy.sh"
+          if [ -d drizzle ]; then FILES="$FILES drizzle"; fi
+          tar -czf release.tgz $FILES
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Open SSH port for this runner
+        run: |
+          RUNNER_IP=$(curl -fsS https://checkip.amazonaws.com)
+          echo "RUNNER_CIDR=${RUNNER_IP}/32" >> "$GITHUB_ENV"
+          aws lightsail open-instance-public-ports --instance-name "$INSTANCE" \
+            --port-info "fromPort=22,toPort=22,protocol=TCP,cidrs=${RUNNER_IP}/32"
+
+      - name: Upload and deploy
+        env:
+          SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # 방화벽 변경이 반영될 때까지 잠깐 걸릴 수 있어 접속을 재시도한다.
+          for attempt in $(seq 1 10); do
+            ssh $SSH_OPTS "$TARGET" true && break
+            if [ "$attempt" = 10 ]; then echo "SSH 접속 실패" >&2; exit 1; fi
+            sleep 3
+          done
+
+          scp $SSH_OPTS release.tgz "$TARGET:/tmp/release.tgz"
+          ssh $SSH_OPTS "$TARGET" 'set -e
+            mkdir -p ~/app
+            rm -rf ~/app/dist ~/app/drizzle
+            tar -xzf /tmp/release.tgz -C ~/app
+            bash ~/app/deploy/remote-deploy.sh'
+
+      - name: Close SSH port
+        if: always() && env.RUNNER_CIDR != ''
+        run: |
+          aws lightsail close-instance-public-ports --instance-name "$INSTANCE" \
+            --port-info "fromPort=22,toPort=22,protocol=TCP,cidrs=${RUNNER_CIDR}"
