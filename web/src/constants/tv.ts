@@ -8,3 +8,6 @@ export const COLOR_BAR_CHANNEL_NUMBER = 0;
 
 /** 리모컨 볼륨 버튼 한 번에 바뀌는 플레이어 볼륨 (0~1). */
 export const VOLUME_STEP = 0.1;
+
+/** TV 전원 켜기·끄기 CRT 연출 길이. globals.css의 crt-on·crt-off 애니메이션 길이와 같다. */
+export const CRT_DURATION_MS = 520;
