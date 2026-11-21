@@ -7,6 +7,7 @@
 | [server/](server/) | 백엔드 API (NestJS) | AWS — `main` 푸시 시 GitHub Actions |
 | [app/](app/) | 모바일 앱 (Expo / React Native) | — |
 | [web/](web/) | 웹 (Next.js) | — |
+| [shared/](shared/) | 공용 엔티티·API 타입 (zod 스키마). server가 검증에 쓰고 app·web은 타입으로 가져간다 | — |
 | [docs/](docs/) | 기획 문서·회의록·가이드 (PM 관리, 읽기 전용) | — |
 
 파트별 실행 방법은 각 폴더의 README를 참고한다.

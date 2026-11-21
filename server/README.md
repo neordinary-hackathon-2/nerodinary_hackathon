@@ -1,6 +1,6 @@
 # Ne(o)rdinary Hackathon — Server
 
-11th Ne(o)rdinary Hackathon 서버 파트. NestJS 12 · Drizzle ORM · MySQL.
+11th Ne(o)rdinary Hackathon 서버 파트. NestJS 12 · Drizzle ORM · MySQL · zod.
 
 ## 실행
 
@@ -20,7 +20,7 @@ pnpm start:dev
 | `pnpm start:dev` | 로컬 개발 (watch) |
 | `pnpm build` / `pnpm start:prod` | 빌드 / 빌드 결과 실행 |
 | `pnpm lint` / `pnpm format` | 린트 / 포맷 |
-| `pnpm test:e2e` | 공통 응답·예외 규약 테스트 |
+| `pnpm test:e2e` | 공통 응답·예외 규약, Swagger 문서 생성 테스트 |
 | `pnpm db:push` | 스키마를 로컬 DB에 바로 반영 (개발 중) |
 | `pnpm db:generate` | 스키마 변경을 마이그레이션 SQL로 생성 (`drizzle/`) |
 | `pnpm db:studio` | DB 조회 화면 |
@@ -38,10 +38,11 @@ src/
 │   ├── response/        # 공통 응답 봉투 + 인터셉터
 │   ├── exception/       # 에러 코드, BusinessException, 전역 예외 필터
 │   └── swagger/         # @ApiSuccess / @ApiFailure
-└── health/              # 도메인 모듈 예시: controller → service → dto
+└── health/              # 도메인 모듈 예시: controller → service
 ```
 
-도메인은 `src/<도메인>/` 아래에 `controller`(HTTP) → `service`(비즈니스 로직) → `dto`로 나눈다.
+도메인은 `src/<도메인>/` 아래에 `controller`(HTTP) → `service`(비즈니스 로직)로 나눈다.
+엔티티와 요청/응답 정의는 레포 루트의 [`shared/`](../shared/)에 모은다.
 테이블 정의는 `src/database/schema/`에 모은다.
 `pnpm exec nest g resource <이름>` 으로 뼈대를 만들 수 있다.
 
@@ -60,29 +61,59 @@ src/
 |---|---|---|
 | 조회·수정·삭제 성공 | 200 | `COMMON200` |
 | 생성 성공 (`@Post`) | 201 | `COMMON201` |
-| DTO 검증 실패 (본문·쿼리) | 400 | `COMMON400_VALIDATION` (+ `result`에 필드별 사유) |
-| 잘못된 JSON, 파라미터 타입 오류 | 400 | `COMMON400` |
+| 스키마 검증 실패 (본문·쿼리·경로 파라미터) | 400 | `COMMON400_VALIDATION` (+ `result`에 필드별 사유) |
+| 잘못된 JSON | 400 | `COMMON400` |
 | 없는 경로·리소스 | 404 | `COMMON404` |
 | 처리되지 않은 예외 | 500 | `COMMON500` (내부 메시지 비노출, 로그에만 기록) |
 
 ## API 추가 방법
 
+엔티티와 요청/응답은 레포 루트 `shared/`에 zod 스키마로 정의한다. 검증, Swagger 문서, FE 타입이 모두 이 스키마에서 나온다.
+
 ```ts
-// 1) 에러가 필요하면 common/exception/error-code.ts 에 추가
+// 1) (레포 루트) shared/entities/content.ts — 엔티티. entities/index.ts 에 export 한 줄 추가
+export const contentSchema = z
+  .object({
+    id: z.number().int().meta({ example: 1 }),
+    title: z.string().min(1).max(100).meta({ example: '권태' }),
+    createdAt: z.string().meta({ example: '2026-11-21T08:00:00.000Z' }), // Date 는 응답에서 문자열
+  })
+  .meta({ id: 'Content' });                          // id = Swagger에 표시되는 이름
+export type Content = z.infer<typeof contentSchema>;
+
+// 2) (레포 루트) shared/api/content.ts — 요청/응답은 엔티티에서 파생. api/index.ts 에 export 한 줄 추가
+export const createContentRequestSchema = contentSchema
+  .pick({ title: true })
+  .strict()                                          // 정의에 없는 필드가 오면 400
+  .meta({ id: 'CreateContentRequestDto' });
+export type CreateContentRequestDto = z.infer<typeof createContentRequestSchema>;
+
+// 3) 에러가 필요하면 common/exception/error-code.ts 에 추가
 CONTENT_NOT_FOUND: { status: HttpStatus.NOT_FOUND, code: 'CONTENT404', message: '콘텐츠가 없습니다.' },
 
-// 2) 서비스에서는 던지기만 한다
+// 4) 서비스에서는 던지기만 한다
 throw new BusinessException(ErrorCodes.CONTENT_NOT_FOUND);
 
-// 3) 컨트롤러: 요청 DTO에 class-validator + @ApiProperty({ example }) 를 붙인다
+// 5) 컨트롤러: 파라미터 데코레이터에 schema 를 넘기면 검증과 문서화가 같이 된다
 @Post()
 @ApiOperation({ summary: '콘텐츠 생성' })
-@ApiSuccess(ContentResponseDto, { status: HttpStatus.CREATED })
+@ApiSuccess(contentSchema, { status: HttpStatus.CREATED })
 @ApiFailure(ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONTENT_NOT_FOUND)
-create(@Body() dto: CreateContentDto) { return this.contentService.create(dto); }
+create(@Body({ schema: createContentRequestSchema }) dto: CreateContentRequestDto) {
+  return this.contentService.create(dto);
+}
+
+// 쿼리스트링·경로 파라미터는 문자열로 들어오므로 z.coerce 로 변환한다
+@Get(':id')
+findOne(@Param('id', { schema: z.coerce.number().int().positive().meta({ example: 1 }) }) id: number) {}
 ```
 
-Swagger에서 바로 호출되도록 **모든 요청 DTO 필드에 `example`** 을 넣는다.
+- Swagger에서 바로 호출되도록 **모든 요청 필드에 `.meta({ example })`** 을 넣는다.
+- 목록 응답은 `@ApiSuccess(z.array(contentSchema))`.
+- 서버는 `shared/`를 상대 경로로 import한다: `import { contentSchema } from '../../../shared/index.js';`
+- `shared/`의 파일은 FE(web, app) 타입체크에도 걸린다. `zod`와 같은 폴더의 파일만 import한다(`pnpm lint`가 검사).
+- `shared/`를 바꾸면 FE 타입이 같이 바뀐다. 필드를 지우거나 이름을 바꿀 때는 web/app 사용처를 같은 PR에서 고친다.
+- 서버 빌드는 `shared/`를 함께 컴파일한다. 결과물은 `dist/server/src/`와 `dist/shared/`로 나뉘고, 실행 진입점은 `dist/main.js` 그대로다.
 
 ## DB 스키마
 
@@ -101,6 +132,15 @@ export * from './content.schema.js';
 constructor(@InjectDrizzle() private readonly db: Database) {}
 const rows = await this.db.select().from(contents).where(eq(contents.id, id));
 ```
+
+엔티티(`shared/entities`)와 DB 테이블은 따로 정의한다. 둘이 어긋나면 컴파일 오류가 나도록 테이블 파일에서 대조한다.
+
+```ts
+// content.schema.ts 아래에 추가. 어긋난 필드 이름이 오류 메시지에 나온다
+type _Check = AssertNoMismatch<EntityMismatch<typeof contents.$inferSelect, Content>>;
+```
+
+테이블에만 있는 컬럼(밖으로 내보내지 않는 값)은 허용된다. `Date` 컬럼은 엔티티에서 `string`으로 정의한다.
 
 스키마를 바꿨을 때:
 

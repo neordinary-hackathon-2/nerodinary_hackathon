@@ -13,13 +13,30 @@
       }
     ],
     "react/rules-of-hooks": "error",
-    "react/exhaustive-deps": "warn"
+    "react/exhaustive-deps": "warn",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@shared",
+            "allowTypeImports": true,
+            "message": "공용 타입은 타입으로만 가져온다: import type {...} from '@shared'"
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
       "files": ["**/src/components/**", "**/src/screens/**"],
       "rules": {
-        "unicorn/filename-case": ["error", {"case": "pascalCase"}]
+        "unicorn/filename-case": [
+          "error",
+          {
+            "case": "pascalCase"
+          }
+        ]
       }
     },
     {
@@ -30,7 +47,12 @@
         "**/src/constants/**"
       ],
       "rules": {
-        "unicorn/filename-case": ["error", {"case": "camelCase"}]
+        "unicorn/filename-case": [
+          "error",
+          {
+            "case": "camelCase"
+          }
+        ]
       }
     }
   ]
