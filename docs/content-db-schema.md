@@ -19,7 +19,6 @@
 | channel_number | TINYINT UNSIGNED, UNIQUE | 필수 | 리모컨에 표시하는 채널 번호(0~9)이며 번호순 정렬 기준입니다. |
 | name | VARCHAR(50) | 필수 | 예능·금융·뉴스 등 화면 표시 이름입니다. |
 | slogan | VARCHAR(150) | 필수 | 편성표에 표시할 채널 자막입니다. |
-| role | VARCHAR(200) | 선택 | 이 채널의 콘텐츠 역할과 분위기입니다. |
 | seed_keywords | JSON | 필수 | GitHub Actions가 채널별 검색에 사용할 검색어를 문자열 배열로 저장합니다. |
 | created_at, updated_at | TIMESTAMP | 필수 | 생성·수정 시각입니다. |
 
