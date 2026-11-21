@@ -7,6 +7,7 @@
 | [server/](server/) | 백엔드 API (NestJS) | AWS — `main` 푸시 시 GitHub Actions |
 | [app/](app/) | 모바일 앱 (Expo / React Native) | — |
 | [web/](web/) | 웹 (Next.js) | — |
+| [docs/](docs/) | 기획 문서·회의록·가이드 (PM 관리, 읽기 전용) | — |
 
 파트별 실행 방법은 각 폴더의 README를 참고한다.
 각 폴더는 독립된 프로젝트다. 의존성 설치와 명령 실행은 해당 폴더 안에서 한다.
