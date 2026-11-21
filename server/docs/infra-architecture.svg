@@ -71,7 +71,7 @@
 
   <!-- IAM deployer -->
   <rect x="1206" y="158" width="458" height="96" rx="10" fill="#EEF1F4" stroke="#6C757D" stroke-width="1.5"/>
-  <text x="1435" y="186" text-anchor="middle" class="bxttl" fill="#343a40">IAM 사용자 · sychoi-deployer (배포 전용)</text>
+  <text x="1435" y="186" text-anchor="middle" class="bxttl" fill="#343a40">IAM 사용자 · hackathon-deployer (배포 전용)</text>
   <text x="1435" y="210" text-anchor="middle" class="bx" fill="#495057">최소 권한 — 보안그룹 포트 개폐 권한만 보유</text>
   <text x="1435" y="232" text-anchor="middle" class="sm">배포 중에만 러너 IP에 SSH 22 개방 → 완료 후 즉시 회수</text>
 
@@ -103,7 +103,7 @@
 
   <!-- Instance box -->
   <rect x="378" y="496" width="556" height="256" rx="12" fill="#EAF2FB" stroke="#3B6FB0" stroke-width="2"/>
-  <text x="396" y="524" class="bxttl" fill="#2b5a92">Lightsail 인스턴스 · sychoi-api</text>
+  <text x="396" y="524" class="bxttl" fill="#2b5a92">Lightsail 인스턴스 · hackathon-api</text>
   <text x="396" y="546" class="sm" fill="#4a6c92">Ubuntu 24.04 · 1GB RAM · 고정 IP 54.116.233.6</text>
 
   <!-- Caddy -->
@@ -141,7 +141,7 @@
 
   <!-- RDS box -->
   <rect x="1060" y="556" width="500" height="178" rx="12" fill="#EFEAF9" stroke="#6B4FA8" stroke-width="2"/>
-  <text x="1310" y="592" text-anchor="middle" class="bxttl" fill="#59418f">Amazon RDS · sychoi-db</text>
+  <text x="1310" y="592" text-anchor="middle" class="bxttl" fill="#59418f">Amazon RDS · hackathon-db</text>
   <text x="1310" y="620" text-anchor="middle" class="bx" fill="#4a3a6c">MySQL 8.4 · db.t4g.micro · 단일 AZ</text>
   <text x="1310" y="646" text-anchor="middle" class="bx" fill="#4a3a6c">스토리지 암호화 · 퍼블릭 액세스 없음</text>
   <text x="1310" y="676" text-anchor="middle" class="sm">데이터베이스(DB) — 외부 비노출</text>
