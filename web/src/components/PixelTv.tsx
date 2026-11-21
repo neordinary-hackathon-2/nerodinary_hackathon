@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import type {ReactNode} from 'react';
 
+import ColorBars from '@/components/ColorBars';
 import type {TvScreen} from '@/constants/tv';
 
 interface PixelTvProps {
@@ -8,17 +9,6 @@ interface PixelTvProps {
   channelLabel: string;
   children?: ReactNode;
 }
-
-const COLOR_BAR_CLASSES = [
-  'bg-colorbar-1',
-  'bg-colorbar-2',
-  'bg-colorbar-3',
-  'bg-colorbar-4',
-  'bg-colorbar-5',
-  'bg-colorbar-6',
-  'bg-colorbar-7',
-  'bg-colorbar-8',
-];
 
 const SCREEN_BACKGROUND_CLASSES: Record<TvScreen, string> = {
   off: 'bg-ink-900',
@@ -128,13 +118,7 @@ const PixelTv = ({screen, channelLabel, children}: PixelTvProps) => {
             <LoadingContent />
           </>
         )}
-        {screen === 'noSignal' && (
-          <div className="grid size-full grid-cols-[repeat(4,38px_37px)]">
-            {COLOR_BAR_CLASSES.map((colorClass) => (
-              <div key={colorClass} className={colorClass} />
-            ))}
-          </div>
-        )}
+        {screen === 'noSignal' && <ColorBars />}
         {screen === 'live' && children}
       </div>
       <Image
