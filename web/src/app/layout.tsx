@@ -1,14 +1,24 @@
 import type {Metadata} from 'next';
-import {Geist, Geist_Mono} from 'next/font/google';
+import {Press_Start_2P, Silkscreen} from 'next/font/google';
+import localFont from 'next/font/local';
+
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const pretendard = localFont({
+  src: './fonts/PretendardVariable.woff2',
+  variable: '--font-next-pretendard',
+  weight: '45 920',
+});
+
+const silkscreen = Silkscreen({
+  variable: '--font-next-silkscreen',
+  weight: '700',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const pressStart2P = Press_Start_2P({
+  variable: '--font-next-press-start',
+  weight: '400',
   subsets: ['latin'],
 });
 
@@ -21,7 +31,7 @@ const RootLayout = ({children}: LayoutProps<'/'>) => {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${pretendard.variable} ${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
