@@ -13,7 +13,7 @@ import {
  */
 
 const youtubeSeedChannelSchema = z.object({
-  code: channelSchema.shape.code.meta({ example: 'CH05' }),
+  channelNumber: channelSchema.shape.channelNumber,
   seedKeywords: z
     .array(z.string().min(1))
     .meta({ example: ['예능 클립', '웃긴 모음'] }),
@@ -76,7 +76,7 @@ const youtubeSyncVideoSchema = videoSchema
 /** POST /api/internal/youtube/sync 의 요청 본문. */
 export const youtubeSyncRequestSchema = z
   .object({
-    channelCode: channelSchema.shape.code.meta({ example: 'CH05' }),
+    channelNumber: z.number().int().min(1).max(9).meta({ example: 1 }),
     videos: z.array(youtubeSyncVideoSchema).meta({
       description:
         '새 후보와, 메타데이터를 갱신할 기존 영상. 보낼 영상도 지울 영상도 없으면 요청 자체를 생략한다.',
