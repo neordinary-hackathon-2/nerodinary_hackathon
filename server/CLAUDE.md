@@ -19,7 +19,7 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 |---|---|
 | F1 채널 목록 | 채널: id, 이름, `order`(1~7), 슬로건, 대표 색상, 아이콘 |
 | F2 채널 영상 재생 | 영상: id, 채널 id, 유튜브 링크/ID, 제목 |
-| F4 랜덤 | 채널별 영상 풀 (채널당 8~10개, 3~10분 클립, 퍼가기 가능한 영상만) |
+| F4 랜덤 | 채널별 영상 풀 (채널당 100개 유지, 길이 10분~2시간, 퍼가기 가능한 영상만) |
 
 - 화면의 `CH 05`, `CH 07` 같은 번호는 연출용이다. 서버는 `order`만 저장한다.
 - **채널 0개, 영상 없는 채널은 오류가 아니다.** FE가 "방송 준비 중"·"방송 없음" 화면으로 처리하므로 500을 내지 않는다.
@@ -27,6 +27,7 @@ NestJS 12 · Drizzle ORM · MySQL · zod. 실행법·응답 규약·예시 코�
 - 부가 기능(시청 기록 X1 등)은 MVP가 끝난 뒤에만 다룬다.
 
 - 영상 수집·저장·랜덤 조회 스펙은 [`docs/youtube-data-api.md`](../docs/youtube-data-api.md)를 따른다. 스크래핑하지 않고 YouTube Data API로 수집하며, 랜덤 영상은 서버 API가 내려준다.
+- 수집기는 `src/youtube-collector/`(Nest와 별개, Actions에서 실행)다. 서버 내부 API 계약과 할당량은 [`docs/decisions/0003-youtube-collector.md`](docs/decisions/0003-youtube-collector.md).
 
 미확정(임의로 정하지 말고 사용자에게 확인): 최종 채널 목록, 검색어를 DB와 저장소 JSON 중 어디서 관리할지.
 
