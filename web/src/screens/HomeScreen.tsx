@@ -57,6 +57,7 @@ const HomeScreen = () => {
             <TvPlayer
               key={video.youtubeVideoId}
               youtubeVideoId={video.youtubeVideoId}
+              thumbnailUrl={video.thumbnailUrl}
               volume={volume}
               onError={skipFailedVideo}
             />
