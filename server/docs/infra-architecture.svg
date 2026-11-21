@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="1140" viewBox="0 0 1720 1140" font-family="'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','Pretendard',sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#495057"/>
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B5842A"/>
+    </marker>
+    <style>
+      .ttl{font-size:30px;font-weight:700;fill:#1f2933}
+      .sub{font-size:15px;fill:#5b6672}
+      .sect{font-size:17px;font-weight:700;fill:#374151}
+      .bxttl{font-size:16px;font-weight:700}
+      .bx{font-size:13px}
+      .sm{font-size:12px;fill:#5b6672}
+      .lbl{font-size:13px;font-weight:600;fill:#374151}
+      .lblbg{fill:#ffffff;opacity:0.9}
+      .zone{font-size:14px;font-weight:700}
+      .badgeT{font-size:15px;font-weight:700;fill:#1f2933}
+      .badgeD{font-size:12.5px;fill:#434b55}
+      .chk{font-size:15px;font-weight:700;fill:#2f855a}
+    </style>
+    <symbol id="lock" viewBox="0 0 24 24">
+      <rect x="4" y="10" width="16" height="11" rx="2.5" fill="#D64545"/>
+      <path d="M7.5 10 V7 a4.5 4.5 0 0 1 9 0 V10" fill="none" stroke="#D64545" stroke-width="2.4"/>
+      <circle cx="12" cy="15" r="1.7" fill="#ffffff"/>
+    </symbol>
+    <symbol id="key" viewBox="0 0 24 24">
+      <circle cx="8" cy="8" r="5" fill="none" stroke="#6C757D" stroke-width="2.4"/>
+      <path d="M11.5 11.5 L20 20 M18 18 l2 -2 M15.5 15.5 l2 -2" stroke="#6C757D" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1720" height="1140" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="60" y="54" class="ttl">AWS 인프라 구성도</text>
+  <text x="60" y="82" class="sub">Ne(o)rdinary Hackathon · 서버 파트 · AWS ap-northeast-2 (서울 리전)</text>
+
+  <!-- ===================== CI/CD BAND ===================== -->
+  <rect x="40" y="108" width="1640" height="178" rx="14" fill="#FBF8F0" stroke="#D9C48E" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <text x="58" y="134" class="sect">① CI/CD 파이프라인 — GitHub Actions 자동 배포</text>
+
+  <!-- Developer -->
+  <rect x="64" y="158" width="150" height="96" rx="10" fill="#F1F3F5" stroke="#6C757D" stroke-width="1.5"/>
+  <text x="139" y="200" text-anchor="middle" class="bxttl" fill="#343a40">개발자</text>
+  <text x="139" y="224" text-anchor="middle" class="bx" fill="#495057">git push (main)</text>
+
+  <line x1="214" y1="206" x2="296" y2="206" stroke="#495057" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- GitHub Actions: verify -->
+  <rect x="300" y="158" width="250" height="96" rx="10" fill="#FBF3E2" stroke="#B5842A" stroke-width="1.5"/>
+  <text x="425" y="190" text-anchor="middle" class="bxttl" fill="#8a6518">GitHub Actions · verify</text>
+  <text x="425" y="214" text-anchor="middle" class="bx" fill="#6b5214">lint · build · test</text>
+  <text x="425" y="234" text-anchor="middle" class="sm">통과해야 배포 단계로 진행</text>
+
+  <line x1="550" y1="206" x2="612" y2="206" stroke="#495057" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- deploy -->
+  <rect x="616" y="158" width="300" height="96" rx="10" fill="#FBF3E2" stroke="#B5842A" stroke-width="1.5"/>
+  <text x="766" y="186" text-anchor="middle" class="bxttl" fill="#8a6518">deploy</text>
+  <text x="766" y="208" text-anchor="middle" class="bx" fill="#6b5214">빌드 → scp 전송 → pm2 reload</text>
+  <text x="766" y="230" text-anchor="middle" class="bx" fill="#6b5214">→ /api/health 확인</text>
+
+  <!-- GitHub Secrets -->
+  <rect x="952" y="158" width="236" height="96" rx="10" fill="#EEF1F4" stroke="#6C757D" stroke-width="1.5"/>
+  <use href="#key" x="988" y="176" width="18" height="18"/>
+  <text x="1082" y="190" text-anchor="middle" class="bxttl" fill="#343a40">GitHub Secrets</text>
+  <text x="1070" y="214" text-anchor="middle" class="bx" fill="#495057">AWS 키 · SSH 키 보관</text>
+  <text x="1070" y="234" text-anchor="middle" class="sm">코드/로그에 비노출</text>
+
+  <!-- IAM deployer -->
+  <rect x="1206" y="158" width="458" height="96" rx="10" fill="#EEF1F4" stroke="#6C757D" stroke-width="1.5"/>
+  <text x="1435" y="186" text-anchor="middle" class="bxttl" fill="#343a40">IAM 사용자 · sychoi-deployer (배포 전용)</text>
+  <text x="1435" y="210" text-anchor="middle" class="bx" fill="#495057">최소 권한 — 보안그룹 포트 개폐 권한만 보유</text>
+  <text x="1435" y="232" text-anchor="middle" class="sm">배포 중에만 러너 IP에 SSH 22 개방 → 완료 후 즉시 회수</text>
+
+  <!-- ===================== RUNTIME BAND ===================== -->
+  <text x="58" y="332" class="sect">② 런타임 인프라 — 요청 처리 흐름 (WAS ↔ DB 분리)</text>
+
+  <!-- User / Front -->
+  <rect x="60" y="500" width="176" height="118" rx="10" fill="#F1F3F5" stroke="#6C757D" stroke-width="1.5"/>
+  <text x="148" y="544" text-anchor="middle" class="bxttl" fill="#343a40">사용자 / 웹 프론트</text>
+  <text x="148" y="570" text-anchor="middle" class="bx" fill="#495057">(Vercel 배포 예정)</text>
+  <text x="148" y="596" text-anchor="middle" class="sm">브라우저 클라이언트</text>
+
+  <!-- HTTPS arrow to Lightsail -->
+  <line x1="236" y1="540" x2="356" y2="540" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="244" y="500" width="104" height="22" class="lblbg"/>
+  <text x="296" y="516" text-anchor="middle" class="lbl">HTTPS 443</text>
+  <text x="296" y="560" text-anchor="middle" class="sm">54-116-233-6.sslip.io</text>
+
+  <!-- Lightsail VPC container -->
+  <rect x="356" y="360" width="600" height="410" rx="16" fill="#F5FAFF" stroke="#9BC0E6" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="378" y="390" class="zone" fill="#2b6cb0">Lightsail VPC · 172.26.0.0/16</text>
+  <text x="378" y="411" class="sm" fill="#4a7bb0">가용영역 ap-northeast-2a</text>
+
+  <!-- Firewall note -->
+  <rect x="376" y="424" width="560" height="56" rx="8" fill="#ffffff" stroke="#D64545" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <use href="#lock" x="390" y="434" width="17" height="17"/>
+  <text x="413" y="448" class="bx" fill="#b02a2a" font-weight="700">Lightsail 방화벽</text>
+  <text x="392" y="469" class="bx" fill="#434b55">80 · 443 → 0.0.0.0/0 공개   |   22(SSH) → 관리자 IP /32 만   |   3000 → 외부 비공개</text>
+
+  <!-- Instance box -->
+  <rect x="378" y="496" width="556" height="256" rx="12" fill="#EAF2FB" stroke="#3B6FB0" stroke-width="2"/>
+  <text x="396" y="524" class="bxttl" fill="#2b5a92">Lightsail 인스턴스 · sychoi-api</text>
+  <text x="396" y="546" class="sm" fill="#4a6c92">Ubuntu 24.04 · 1GB RAM · 고정 IP 54.116.233.6</text>
+
+  <!-- Caddy -->
+  <rect x="400" y="566" width="244" height="156" rx="10" fill="#ffffff" stroke="#3B6FB0" stroke-width="1.5"/>
+  <text x="522" y="600" text-anchor="middle" class="bxttl" fill="#2b5a92">Caddy  :80 / :443</text>
+  <text x="522" y="626" text-anchor="middle" class="bx" fill="#3a4a5c">리버스 프록시</text>
+  <text x="522" y="650" text-anchor="middle" class="bx" fill="#3a4a5c">Let's Encrypt</text>
+  <text x="522" y="672" text-anchor="middle" class="bx" fill="#3a4a5c">자동 인증서(HTTPS)</text>
+  <text x="522" y="700" text-anchor="middle" class="sm">TLS 종단 처리</text>
+
+  <!-- arrow Caddy -> NestJS -->
+  <line x1="644" y1="644" x2="692" y2="644" stroke="#495057" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="668" y="632" text-anchor="middle" class="sm">localhost</text>
+
+  <!-- NestJS -->
+  <rect x="694" y="566" width="220" height="156" rx="10" fill="#ffffff" stroke="#3B6FB0" stroke-width="1.5"/>
+  <text x="804" y="600" text-anchor="middle" class="bxttl" fill="#2b5a92">NestJS  :3000</text>
+  <text x="804" y="626" text-anchor="middle" class="bx" fill="#3a4a5c">애플리케이션 서버(WAS)</text>
+  <text x="804" y="650" text-anchor="middle" class="bx" fill="#3a4a5c">localhost 전용 바인딩</text>
+  <text x="804" y="674" text-anchor="middle" class="bx" fill="#3a4a5c">pm2 프로세스 관리</text>
+  <text x="804" y="700" text-anchor="middle" class="sm">외부 직접 접근 불가</text>
+
+  <!-- VPC Peering arrow -->
+  <line x1="956" y1="612" x2="1016" y2="612" stroke="#495057" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Default VPC container -->
+  <rect x="1020" y="430" width="580" height="330" rx="16" fill="#F7F4FC" stroke="#B9A6DE" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="1042" y="460" class="zone" fill="#6b4fa8">기본 VPC · 172.31.0.0/16</text>
+
+  <!-- RDS SG note -->
+  <rect x="1040" y="476" width="540" height="56" rx="8" fill="#ffffff" stroke="#D64545" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <use href="#lock" x="1054" y="486" width="17" height="17"/>
+  <text x="1077" y="500" class="bx" fill="#b02a2a" font-weight="700">RDS 보안그룹</text>
+  <text x="1056" y="521" class="bx" fill="#434b55">3306 ← Lightsail 인스턴스 사설 IP 172.26.x /32 에서만 허용</text>
+
+  <!-- RDS box -->
+  <rect x="1060" y="556" width="500" height="178" rx="12" fill="#EFEAF9" stroke="#6B4FA8" stroke-width="2"/>
+  <text x="1310" y="592" text-anchor="middle" class="bxttl" fill="#59418f">Amazon RDS · sychoi-db</text>
+  <text x="1310" y="620" text-anchor="middle" class="bx" fill="#4a3a6c">MySQL 8.4 · db.t4g.micro · 단일 AZ</text>
+  <text x="1310" y="646" text-anchor="middle" class="bx" fill="#4a3a6c">스토리지 암호화 · 퍼블릭 액세스 없음</text>
+  <text x="1310" y="676" text-anchor="middle" class="sm">데이터베이스(DB) — 외부 비노출</text>
+  <text x="1310" y="710" text-anchor="middle" class="sm">DB 비밀번호 → 서버 ~/app/.env.production (권한 600) 에만 저장</text>
+
+  <!-- VPC Peering label (drawn above containers so it is not clipped) -->
+  <rect x="930" y="588" width="116" height="40" rx="6" class="lblbg"/>
+  <text x="988" y="604" text-anchor="middle" class="lbl">VPC 피어링</text>
+  <text x="988" y="621" text-anchor="middle" class="sm">MySQL 3306</text>
+
+  <!-- deploy arrow from CI/CD down to the instance firewall (SSH 22 opened during deploy) -->
+  <path d="M766,254 L766,418" fill="none" stroke="#B5842A" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrowDash)"/>
+  <text x="786" y="410" class="lbl" fill="#8a6518">scp 전송 · pm2 reload (SSH 22 일시 개방)</text>
+
+  <!-- ===================== LEGEND BAND ===================== -->
+  <text x="58" y="820" class="sect">③ 인프라 심사 항목 — 충족 지점</text>
+
+  <!-- badges 3 x 2 -->
+  <!-- row1 -->
+  <rect x="60" y="836" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="80" y="866" class="chk">✔ WAS / DB 분리</text>
+  <text x="80" y="892" class="badgeD">Lightsail 인스턴스(NestJS = WAS)와 Amazon RDS(DB)를</text>
+  <text x="80" y="912" class="badgeD">서로 다른 VPC로 물리적으로 분리하고 VPC 피어링으로만 연결</text>
+
+  <rect x="601" y="836" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="621" y="866" class="chk">✔ HTTPS 적용</text>
+  <text x="621" y="892" class="badgeD">Caddy + Let's Encrypt 자동 인증서로 443 전 구간 암호화,</text>
+  <text x="621" y="912" class="badgeD">인증서 갱신도 자동 처리</text>
+
+  <rect x="1142" y="836" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="1162" y="866" class="chk">✔ DB 포트 외부 비노출</text>
+  <text x="1162" y="892" class="badgeD">RDS 퍼블릭 액세스 없음, 3306은 Lightsail 사설 IP /32</text>
+  <text x="1162" y="912" class="badgeD">에서만 허용 — 인터넷에서 DB 직접 접근 불가</text>
+
+  <!-- row2 -->
+  <rect x="60" y="966" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="80" y="996" class="chk">✔ 불필요한 포트 비공개 (방화벽)</text>
+  <text x="80" y="1022" class="badgeD">80 · 443만 공개, 3000 및 기타 포트 비공개,</text>
+  <text x="80" y="1042" class="badgeD">SSH 22는 관리자 IP / 배포 시에만 한시적으로 개방</text>
+
+  <rect x="601" y="966" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="621" y="996" class="chk">✔ CI/CD 자동화</text>
+  <text x="621" y="1022" class="badgeD">GitHub Actions: verify(lint·build·test) → deploy →</text>
+  <text x="621" y="1042" class="badgeD">/api/health 확인까지 push 한 번으로 자동 수행</text>
+
+  <rect x="1142" y="966" width="518" height="116" rx="10" fill="#F6FBF8" stroke="#86C9A4" stroke-width="1.5"/>
+  <text x="1162" y="996" class="chk">✔ 민감정보 관리</text>
+  <text x="1162" y="1022" class="badgeD">DB 비밀번호는 서버 .env.production(권한 600)에만,</text>
+  <text x="1162" y="1042" class="badgeD">AWS 키·SSH 키는 GitHub Secrets에 보관 (코드 비포함)</text>
+
+</svg>
