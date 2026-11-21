@@ -6,6 +6,7 @@ First, run the development server:
 
 ```bash
 pnpm install
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL: 밥송국 서버 API 주소
 pnpm dev
 ```
 

@@ -7,6 +7,9 @@ type RemoteRockerType = 'volume' | 'channel';
 interface RemoteRockerProps {
   type: RemoteRockerType;
   className?: string;
+  disabled?: boolean;
+  onClickUp?: () => void;
+  onClickDown?: () => void;
 }
 
 interface RockerConfig {
@@ -45,17 +48,26 @@ const rockerConfig: Record<RemoteRockerType, RockerConfig> = {
   },
 };
 
-const RemoteRocker = ({type, className = 'relative'}: RemoteRockerProps) => {
+const RemoteRocker = ({
+  type,
+  className = 'relative',
+  disabled = false,
+  onClickUp,
+  onClickDown,
+}: RemoteRockerProps) => {
   const config = rockerConfig[type];
 
   return (
     <div
-      className={`group h-[99px] w-[44px] shrink-0 overflow-hidden border-3 border-solid border-black/50 bg-peach-100 shadow-key hover:border-black hover:bg-bg-accent has-[:active]:border-black has-[:active]:bg-bg-accent has-[[data-half=up]:active]:shadow-rocker-up has-[[data-half=down]:active]:shadow-rocker-down ${className}`}
+      // 비활성이면 로커 전체가 hover·눌림 모양을 보이지 않도록 포인터 이벤트를 막는다.
+      className={`group h-[99px] w-[44px] shrink-0 overflow-hidden border-3 border-solid border-black/50 bg-peach-100 shadow-key hover:border-black hover:bg-bg-accent has-[:active]:border-black has-[:active]:bg-bg-accent has-[[data-half=up]:active]:shadow-rocker-up has-[[data-half=down]:active]:shadow-rocker-down ${disabled ? 'pointer-events-none' : ''} ${className}`}
     >
       <button
         type="button"
         aria-label={config.upName}
         data-half="up"
+        disabled={disabled}
+        onClick={onClickUp}
         className="group/up absolute inset-x-0 top-0 h-[46px]"
       >
         {config.upIcon}
@@ -64,6 +76,8 @@ const RemoteRocker = ({type, className = 'relative'}: RemoteRockerProps) => {
         type="button"
         aria-label={config.downName}
         data-half="down"
+        disabled={disabled}
+        onClick={onClickDown}
         className="group/down absolute inset-x-0 top-[46px] h-[47px]"
       >
         {config.downIcon}
