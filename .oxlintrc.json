@@ -1,0 +1,9 @@
+{
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/no-floating-promises": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn"
+  }
+}
