@@ -43,11 +43,12 @@ const message: BridgeMessage = {type: 'feedback', feedback: 'tap'};
 window.ReactNativeWebView?.postMessage(JSON.stringify(message));
 ```
 
-| `feedback` | 쓰는 곳                                                     | 햅틱 (iOS / Android)  | 효과음          |
-| ---------- | ----------------------------------------------------------- | --------------------- | --------------- |
-| `tap`      | 리모컨 버튼 누름 (볼륨·채널·숫자·새로고침·편성표 열고 닫기) | Light / `Virtual_Key` | `tap.wav`       |
-| `powerOn`  | TV 전원 켜기                                                | Medium / `Toggle_On`  | `power-on.wav`  |
-| `powerOff` | TV 전원 끄기                                                | Medium / `Toggle_Off` | `power-off.wav` |
+| `feedback`  | 쓰는 곳                                           | 햅틱 (iOS / Android)  | 효과음          |
+| ----------- | ------------------------------------------------- | --------------------- | --------------- |
+| `tap`       | 리모컨 버튼 누름 (숫자·새로고침·편성표 열고 닫기) | Light / `Virtual_Key` | `tap.wav`       |
+| `silentTap` | 리모컨 볼륨 +/−, 채널 ▲/▼ 누름                    | Light / `Virtual_Key` | 없음            |
+| `powerOn`   | TV 전원 켜기                                      | Medium / `Toggle_On`  | `power-on.wav`  |
+| `powerOff`  | TV 전원 끄기                                      | Medium / `Toggle_Off` | `power-off.wav` |
 
 Android `Toggle_On`·`Toggle_Off`는 Android 14(API 34)부터 있어서, 그 아래 버전에서는 전원 햅틱을 `Long_Press`로 낸다. Android 햅틱은 시스템 터치 진동 설정을 따르므로 무음 모드나 터치 진동을 끈 기기에서는 진동이 나지 않는다.
 

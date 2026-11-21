@@ -3,6 +3,7 @@ import type {AppFeedback, AppVolumeDirection, BridgeMessage} from '@shared';
 // shared의 appFeedbackSchema·appVolumeDirectionSchema 값 목록. 값이 추가·삭제되면 Record 타입 검사에서 컴파일 오류가 난다.
 const APP_FEEDBACKS: Record<AppFeedback, true> = {
   tap: true,
+  silentTap: true,
   powerOn: true,
   powerOff: true,
 };

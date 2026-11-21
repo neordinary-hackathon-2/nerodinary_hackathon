@@ -23,6 +23,10 @@ const HAPTICS: Record<
     ios: Haptics.ImpactFeedbackStyle.Light,
     android: Haptics.AndroidHaptics.Virtual_Key,
   },
+  silentTap: {
+    ios: Haptics.ImpactFeedbackStyle.Light,
+    android: Haptics.AndroidHaptics.Virtual_Key,
+  },
   powerOn: {
     ios: Haptics.ImpactFeedbackStyle.Medium,
     android: isToggleHapticSupported
@@ -37,7 +41,7 @@ const HAPTICS: Record<
   },
 };
 
-/** 웹에서 받은 피드백 종류에 맞춰 햅틱과 효과음을 함께 낸다. */
+/** 웹에서 받은 피드백 종류에 맞춰 햅틱과 효과음을 낸다. */
 const useAppFeedback = () => {
   const tapPlayer = useAudioPlayer(TAP_SOUND);
   const powerOnPlayer = useAudioPlayer(POWER_ON_SOUND);
@@ -52,16 +56,20 @@ const useAppFeedback = () => {
     });
   }, []);
 
-  const players: Record<AppFeedback, AudioPlayer> = {
+  // silentTap(볼륨·채널 버튼)은 효과음 없이 햅틱만 낸다.
+  const players: Record<AppFeedback, AudioPlayer | null> = {
     tap: tapPlayer,
+    silentTap: null,
     powerOn: powerOnPlayer,
     powerOff: powerOffPlayer,
   };
 
   const playFeedback = (feedback: AppFeedback) => {
     const player = players[feedback];
-    void player.seekTo(0);
-    player.play();
+    if (player) {
+      void player.seekTo(0);
+      player.play();
+    }
     void (Platform.OS === 'android'
       ? Haptics.performAndroidHapticsAsync(HAPTICS[feedback].android)
       : Haptics.impactAsync(HAPTICS[feedback].ios));
