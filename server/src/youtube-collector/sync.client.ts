@@ -5,6 +5,7 @@ import {
   type YoutubeSyncRequestDto,
   type YoutubeSyncResultDto,
 } from '../youtube/youtube-internal.schema.js';
+import { SEED_TOKEN_HEADER } from '../youtube/youtube.constants.js';
 import type { SeedChannel } from './collector.types.js';
 import type { FetchLike } from './youtube.client.js';
 
@@ -39,7 +40,7 @@ export function createSyncClient(options: SyncClientOptions): CollectorServer {
     const response = await fetchFn(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        'X-Seed-Token': options.token,
+        [SEED_TOKEN_HEADER]: options.token,
         'Content-Type': 'application/json',
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

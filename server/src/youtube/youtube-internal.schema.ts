@@ -22,7 +22,7 @@ const youtubeSeedChannelSchema = z.object({
     .optional()
     .meta({
       description:
-        '[제안] 이 채널에 저장된 영상의 YouTube ID. 수집기가 재검증하고 부족분만 채우는 데 쓴다. 없으면 수집기는 매번 목표 개수만큼 새로 찾는다.',
+        '이 채널에 저장된 영상의 YouTube ID. 수집기가 재검증하고 부족분만 채우는 데 쓴다. 없으면 수집기는 매번 목표 개수만큼 새로 찾는다.',
       example: ['YOUTUBE_VIDEO_ID'],
     }),
 });
@@ -86,7 +86,7 @@ export const youtubeSyncRequestSchema = z
       .optional()
       .meta({
         description:
-          '[제안] 재검증에서 삭제·비공개·임베드 불가가 확인돼 행을 지울 영상의 YouTube ID.',
+          '재검증에서 삭제·비공개·임베드 불가가 확인돼 이 채널에서 지울 영상의 YouTube ID.',
         example: ['YOUTUBE_VIDEO_ID'],
       }),
   })

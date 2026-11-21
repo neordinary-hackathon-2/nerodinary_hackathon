@@ -2,6 +2,10 @@ import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { runCollector, type CollectorReport } from './collector.js';
 import { createFileChannelSource, createSyncClient } from './sync.client.js';
+import {
+  DEFAULT_MAX_DURATION_SECONDS,
+  DEFAULT_MIN_DURATION_SECONDS,
+} from '../youtube/youtube.constants.js';
 import { createYoutubeClient } from './youtube.client.js';
 
 /**
@@ -11,7 +15,7 @@ import { createYoutubeClient } from './youtube.client.js';
  *
  * --dry-run             YouTube 는 호출하되 서버에는 보내지 않는다.
  * --channels-file=경로  서버 대신 JSON 파일에서 채널 설정을 읽는다. --dry-run 과 함께만 쓴다.
- * --channel=코드        해당 코드의 채널만 처리한다.
+ * --channel=번호        해당 번호(1~9)의 채널만 처리한다.
  */
 const envSchema = z.object({
   YOUTUBE_API_KEY: z.string().min(1),
@@ -20,8 +24,16 @@ const envSchema = z.object({
   TARGET_PER_CHANNEL: z.coerce.number().int().min(1).default(100),
   SEARCH_CALL_BUDGET: z.coerce.number().int().min(0).max(100).default(60),
   SEARCH_CALLS_PER_CHANNEL: z.coerce.number().int().min(0).max(100).default(6),
-  MIN_DURATION_SECONDS: z.coerce.number().int().min(240).default(600),
-  MAX_DURATION_SECONDS: z.coerce.number().int().min(240).default(7200),
+  MIN_DURATION_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(240)
+    .default(DEFAULT_MIN_DURATION_SECONDS),
+  MAX_DURATION_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(240)
+    .default(DEFAULT_MAX_DURATION_SECONDS),
   YOUTUBE_REGION_CODE: z.string().length(2).default('KR'),
   YOUTUBE_RELEVANCE_LANGUAGE: z.string().min(2).default('ko'),
 });
@@ -30,7 +42,7 @@ function printReport(report: CollectorReport, dryRun: boolean): void {
   console.log(dryRun ? '\n[dry-run] 서버에는 보내지 않았습니다.' : '');
   console.table(
     report.channels.map((c) => ({
-      채널: c.channelCode,
+      채널: c.channelNumber,
       '실행 전': c.storedKnown ? c.storedBefore : '모름',
       삭제: c.removed,
       추가: c.added,
@@ -74,7 +86,10 @@ async function main(): Promise<void> {
 
   const dryRun = values['dry-run'];
   const channelsFile = values['channels-file'];
-  const onlyChannelCode = values.channel;
+  const onlyChannelNumber =
+    values.channel === undefined
+      ? undefined
+      : z.coerce.number().int().min(0).max(9).parse(values.channel);
 
   let server;
   if (channelsFile) {
@@ -113,7 +128,7 @@ async function main(): Promise<void> {
         maxSeconds: env.MAX_DURATION_SECONDS,
       },
       dryRun,
-      onlyChannelCode,
+      onlyChannelNumber,
     },
   );
 

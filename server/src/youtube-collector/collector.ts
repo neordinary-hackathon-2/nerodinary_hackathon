@@ -16,6 +16,9 @@ import {
 /** 하한이 4분 이상이므로 short(4분 미만) 구간은 검색하지 않는다. 숏폼도 여기서 빠진다. */
 const SEARCH_DURATIONS: SearchDuration[] = ['medium', 'long'];
 
+/** sync 요청 한 번에 싣는 영상 수. 서버의 요청 본문 크기 제한(100KB)을 넘지 않게 한다. */
+export const SYNC_CHUNK_SIZE = 50;
+
 export interface CollectorOptions {
   /** 채널당 유지할 활성 영상 수. 모자란 만큼만 새로 찾는다. */
   targetPerChannel: number;
@@ -26,8 +29,8 @@ export interface CollectorOptions {
   limits: DurationLimits;
   /** true 면 YouTube 는 실제로 호출하되 서버에는 아무것도 보내지 않는다. */
   dryRun: boolean;
-  /** 지정하면 이 코드의 채널만 처리한다. 실측할 때 할당량을 아끼는 용도. */
-  onlyChannelCode?: string;
+  /** 지정하면 이 번호의 채널만 처리한다. 실측할 때 할당량을 아끼는 용도. */
+  onlyChannelNumber?: number;
 }
 
 export interface CollectorDeps {
@@ -37,7 +40,7 @@ export interface CollectorDeps {
 }
 
 export interface ChannelReport {
-  channelCode: string;
+  channelNumber: number;
   target: number;
   /**
    * 서버가 저장된 영상 목록(storedVideoIds)을 내려줬는지.
@@ -76,6 +79,8 @@ interface ChannelPlan {
   aliveCount: number;
   refreshed: VideoDetail[];
   removedVideoIds: string[];
+  /** 이 채널에서 이미 알고 있는 영상. 같은 영상이 다른 채널에 있는 것은 막지 않는다. */
+  knownIds: Set<string>;
   added: VideoDetail[];
   queue: SearchQuery[];
 }
@@ -123,12 +128,11 @@ export async function runCollector(
 
   const allChannels = await server.fetchChannels();
   const channels =
-    options.onlyChannelCode === undefined
+    options.onlyChannelNumber === undefined
       ? allChannels
-      : allChannels.filter((c) => c.code === options.onlyChannelCode);
-
-  // 한 영상은 한 채널에만 속한다. 다른 채널에 이미 있는 영상도 후보에서 뺀다.
-  const knownIds = new Set(allChannels.flatMap((c) => c.storedVideoIds ?? []));
+      : allChannels.filter(
+          (c) => c.channelNumber === options.onlyChannelNumber,
+        );
 
   const lookup = await youtube.fetchVideoDetails(
     channels.flatMap((c) => c.storedVideoIds ?? []),
@@ -157,13 +161,13 @@ export async function runCollector(
 
     if (channel.storedVideoIds === undefined && channel.seedKeywords.length) {
       log(
-        `채널 ${channel.code}: 서버가 저장된 영상 목록을 주지 않아 재검증을 건너뛰고 목표 개수만큼 새로 찾습니다.`,
+        `채널 ${channel.channelNumber}: 서버가 저장된 영상 목록을 주지 않아 재검증을 건너뛰고 목표 개수만큼 새로 찾습니다.`,
       );
     }
 
     return {
       report: {
-        channelCode: channel.code,
+        channelNumber: channel.channelNumber,
         target: options.targetPerChannel,
         storedKnown: channel.storedVideoIds !== undefined,
         storedBefore: stored.length,
@@ -179,6 +183,7 @@ export async function runCollector(
       aliveCount,
       refreshed,
       removedVideoIds,
+      knownIds: new Set(stored),
       added: [],
       queue: channel.seedKeywords.flatMap((query) =>
         SEARCH_DURATIONS.map((duration) => ({
@@ -236,7 +241,7 @@ export async function runCollector(
         }
         // 일시적인 오류는 이 검색어·구간만 버리고 계속한다.
         log(
-          `채널 ${plan.report.channelCode} 검색 실패 ("${query.query}", ${query.duration}): ${describe(error)}`,
+          `채널 ${plan.report.channelNumber} 검색 실패 ("${query.query}", ${query.duration}): ${describe(error)}`,
         );
         continue;
       }
@@ -247,10 +252,10 @@ export async function runCollector(
       }
 
       const fresh = [...new Set(page.videoIds)].filter(
-        (id) => !knownIds.has(id),
+        (id) => !plan.knownIds.has(id),
       );
       for (const id of fresh) {
-        knownIds.add(id);
+        plan.knownIds.add(id);
       }
       plan.report.candidates += fresh.length;
       if (fresh.length === 0) {
@@ -285,23 +290,33 @@ export async function runCollector(
       continue;
     }
     try {
-      const result = await server.sync({
-        channelCode: plan.report.channelCode,
-        videos,
-        // 지울 영상이 없으면 필드를 생략해, 이 필드를 모르는 서버와도 통신할 수 있게 한다.
-        ...(plan.removedVideoIds.length > 0
-          ? { removedVideoIds: plan.removedVideoIds }
-          : {}),
-      });
-      plan.report.rejected = result.rejectedCount;
-      for (const item of result.rejected) {
-        log(
-          `채널 ${plan.report.channelCode}: 서버가 ${item.youtubeVideoId} 를 제외했습니다 (${item.reason})`,
-        );
+      // 요청 본문이 커지지 않게 나눠 보낸다. 삭제 목록은 첫 요청에만 싣는다.
+      const chunks: SyncVideo[][] = [];
+      for (let start = 0; start < videos.length; start += SYNC_CHUNK_SIZE) {
+        chunks.push(videos.slice(start, start + SYNC_CHUNK_SIZE));
+      }
+      if (chunks.length === 0) {
+        chunks.push([]);
+      }
+      for (const [index, chunk] of chunks.entries()) {
+        const result = await server.sync({
+          channelNumber: plan.report.channelNumber,
+          videos: chunk,
+          // 지울 영상이 없으면 필드를 생략한다.
+          ...(index === 0 && plan.removedVideoIds.length > 0
+            ? { removedVideoIds: plan.removedVideoIds }
+            : {}),
+        });
+        plan.report.rejected += result.rejectedCount;
+        for (const item of result.rejected) {
+          log(
+            `채널 ${plan.report.channelNumber}: 서버가 ${item.youtubeVideoId} 를 제외했습니다 (${item.reason})`,
+          );
+        }
       }
     } catch (error) {
       plan.report.syncError = describe(error);
-      log(`채널 ${plan.report.channelCode} 동기화 실패: ${describe(error)}`);
+      log(`채널 ${plan.report.channelNumber} 동기화 실패: ${describe(error)}`);
     }
   }
 
