@@ -33,8 +33,10 @@
   --color-border-strong: var(--color-ink-900);
   --color-border-subtle: #efe6da;
   --color-shadow-hard: var(--color-ink-900);
+  --color-room-shade: rgb(204 187 167 / 0.4);
 
   --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
+  --shadow-hard-lg: 4px 4px 0 var(--color-shadow-hard);
   --shadow-key: 0 4px 0 var(--color-shadow-hard);
   --shadow-key-sm: 0 3px 0 var(--color-shadow-hard);
   --shadow-key-md: 0 3.387px 0 var(--color-shadow-hard);
@@ -69,14 +71,7 @@
   }
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, sans-serif;
@@ -84,18 +79,6 @@
     var(--font-next-silkscreen), 'Pretendard Variable', Pretendard, sans-serif;
   --font-press-start:
     var(--font-next-press-start), 'Pretendard Variable', Pretendard, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
 }
 
 @utility tv-screen-mask {

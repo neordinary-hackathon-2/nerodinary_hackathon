@@ -5,6 +5,7 @@ import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
 import Providers from '@/components/Providers';
+import RoomBackground from '@/components/RoomBackground';
 
 const silkscreen = Silkscreen({
   variable: '--font-next-silkscreen',
@@ -29,7 +30,10 @@ const RootLayout = ({children}: LayoutProps<'/'>) => {
       lang="en"
       className={`${silkscreen.variable} ${pressStart2P.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* isolate: 배경(-z-10)이 body 배경 아래로 숨지 않고 화면 콘텐츠 바로 뒤에 그려지게 한다. */}
+      {/* 화면 높이에 고정하고 넘치는 부분은 잘라 스크롤을 막는다. overscroll-none은 웹뷰·모바일의 당겨서 튕기는 스크롤을 막는다. */}
+      <body className="isolate flex h-dvh flex-col overflow-hidden overscroll-none bg-bg-app text-text-primary">
+        <RoomBackground />
         <Providers>{children}</Providers>
       </body>
     </html>
