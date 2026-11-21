@@ -25,7 +25,7 @@ CREATE TABLE `videos` (
 	`created_at` timestamp NOT NULL DEFAULT (now()),
 	`updated_at` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `videos_id` PRIMARY KEY(`id`),
-	CONSTRAINT `videos_youtube_video_id_uq` UNIQUE(`youtube_video_id`)
+	CONSTRAINT `videos_app_channel_youtube_video_uq` UNIQUE(`app_channel_id`,`youtube_video_id`)
 );
 --> statement-breakpoint
 ALTER TABLE `videos` ADD CONSTRAINT `videos_app_channel_id_channels_id_fk` FOREIGN KEY (`app_channel_id`) REFERENCES `channels`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

@@ -180,19 +180,20 @@
         }
       },
       "indexes": {
-        "videos_youtube_video_id_uq": {
-          "name": "videos_youtube_video_id_uq",
-          "columns": [
-            "youtube_video_id"
-          ],
-          "isUnique": true
-        },
         "videos_app_channel_id_idx": {
           "name": "videos_app_channel_id_idx",
           "columns": [
             "app_channel_id"
           ],
           "isUnique": false
+        },
+        "videos_app_channel_youtube_video_uq": {
+          "name": "videos_app_channel_youtube_video_uq",
+          "columns": [
+            "app_channel_id",
+            "youtube_video_id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
