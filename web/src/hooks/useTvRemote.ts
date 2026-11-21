@@ -56,6 +56,8 @@ const getTvView = ({
  */
 const useTvRemote = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
+  // 이번 접속에서 전원을 한 번이라도 켰는지. 켜기 전까지만 "TURN ON !" 온보딩을 보여준다.
+  const [hasPoweredOn, setHasPoweredOn] = useState(false);
   const [channelNumber, setChannelNumber] = useState(START_CHANNEL_NUMBER);
   // 채널별로 처음 들어갈 때 뽑은 0~1 난수. 영상 목록에서의 위치를 정한다.
   const [videoPicks, setVideoPicks] = useState<Record<number, number>>({});
@@ -112,6 +114,7 @@ const useTvRemote = () => {
       return;
     }
     setIsPowerOn(true);
+    setHasPoweredOn(true);
     enterChannel(START_CHANNEL_NUMBER);
     postToApp({type: 'feedback', feedback: 'powerOn'});
   };
@@ -195,6 +198,7 @@ const useTvRemote = () => {
 
   return {
     isPowerOn,
+    isOnboarding: !hasPoweredOn,
     screen,
     channelLabel,
     video,

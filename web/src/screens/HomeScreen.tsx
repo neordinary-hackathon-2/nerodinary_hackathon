@@ -11,6 +11,7 @@ import useTvRemote from '@/hooks/useTvRemote';
 const HomeScreen = () => {
   const {
     isPowerOn,
+    isOnboarding,
     screen,
     channelLabel,
     video,
@@ -31,7 +32,7 @@ const HomeScreen = () => {
 
   const remote = (
     <Remote
-      size={isPowerOn ? 'default' : 'big'}
+      size={isOnboarding ? 'big' : 'default'}
       isPowerOn={isPowerOn}
       onClickPower={togglePower}
       onClickVolumeUp={volumeUp}
@@ -47,9 +48,9 @@ const HomeScreen = () => {
   return (
     <main className="mx-auto flex h-dvh w-full max-w-mobile flex-col overflow-clip *:shrink-0">
       <Header isLive={screen === 'live'} />
-      {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(꺼짐 117px, 켜짐 98px)에 맞춘다. */}
+      {/* PC(lg)는 헤더가 페이지 왼쪽 위로 빠지므로 Figma pc 시안의 TV 위치(온보딩 117px, 그 밖 98px)에 맞춘다. */}
       <div
-        className={`mt-[45px] px-5 ${isPowerOn ? 'lg:mt-[98px]' : 'lg:mt-[117px]'}`}
+        className={`mt-[45px] px-5 ${isOnboarding ? 'lg:mt-[117px]' : 'lg:mt-[98px]'}`}
       >
         <PixelTv screen={screen} channelLabel={channelLabel}>
           {screen === 'live' && video && (
@@ -62,10 +63,9 @@ const HomeScreen = () => {
           )}
         </PixelTv>
       </div>
-      {isPowerOn ? (
-        <div className="mt-4 flex justify-center">{remote}</div>
-      ) : (
-        // Figma home/default: 꺼진 TV 아래 "TURN ON !" 안내와 전원 버튼을 가리키는 화살표, 큰 리모컨.
+      {isOnboarding ? (
+        // Figma home/default: 처음 접속해 꺼진 TV 아래 "TURN ON !" 안내와 전원 버튼을 가리키는 화살표, 큰 리모컨.
+        // 한 번 켠 뒤에는 꺼도 다시 보이지 않는다.
         <div className="mt-[37px] flex flex-col">
           <p className="ml-[43px] font-silkscreen text-[20px] leading-none font-bold text-text-muted">
             TURN ON !
@@ -80,6 +80,8 @@ const HomeScreen = () => {
           </div>
           <div className="mt-[9px] ml-[60px]">{remote}</div>
         </div>
+      ) : (
+        <div className="mt-4 flex justify-center">{remote}</div>
       )}
       {isGuideOpen && (
         // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
