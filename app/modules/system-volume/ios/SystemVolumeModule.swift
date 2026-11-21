@@ -13,7 +13,7 @@ public class SystemVolumeModule: Module {
   public func definition() -> ModuleDefinition {
     Name("SystemVolume")
 
-    Function("adjust") { (direction: String) in
+    AsyncFunction("adjust") { (direction: String) in
       let delta: Float = direction == "up" ? 1 : -1
       let current = AVAudioSession.sharedInstance().outputVolume
       let target = min(volumeSteps, max(0, (current * volumeSteps).rounded() + delta)) / volumeSteps
