@@ -78,30 +78,16 @@ export class YoutubeSyncService {
     const now = new Date();
 
     const evictedCount = await this.db.transaction(async (tx) => {
-      // videos 에는 (채널, 영상) 중복을 막는 DB 제약이 없다. 같은 영상이 여러 채널에 들어갈 수 있고,
-      // 한 채널 안의 중복은 여기서 "이미 있으면 갱신, 없으면 추가"로 막는다.
-      const existingIds =
-        accepted.length === 0
-          ? new Set<string>()
-          : new Set(
-              (
-                await tx
-                  .select({ youtubeVideoId: videos.youtubeVideoId })
-                  .from(videos)
-                  .where(
-                    and(
-                      eq(videos.appChannelId, channel.id),
-                      inArray(
-                        videos.youtubeVideoId,
-                        accepted.map((video) => video.youtubeVideoId),
-                      ),
-                    ),
-                  )
-              ).map((row) => row.youtubeVideoId),
-            );
-
-      const toInsert: (typeof videos.$inferInsert)[] = [];
-      for (const video of accepted) {
+      // videos 에는 (app_channel_id, youtube_video_id) 복합 유니크 제약이 있다(11.22 결정).
+      // 같은 영상이 여러 채널에 들어갈 수 있고, 한 채널 안의 중복은 DB가 막는다.
+      // "있으면 갱신, 없으면 추가"는 ON DUPLICATE KEY UPDATE 로 원자적으로 처리해
+      // 동시 요청이 와도 유니크 위반으로 트랜잭션이 깨지지 않는다.
+      // 영상 ID 순으로 잠그면 동시 트랜잭션이 서로 반대 순서로 기다리는 교착을 피한다.
+      // (축출까지 포함한 채널 단위 직렬화는 수집 워크플로의 concurrency 가 맡는다.)
+      const ordered = [...accepted].sort((a, b) =>
+        a.youtubeVideoId < b.youtubeVideoId ? -1 : 1,
+      );
+      for (const video of ordered) {
         const metadata = {
           title: video.title,
           thumbnailUrl: video.thumbnailUrl,
@@ -111,26 +97,14 @@ export class YoutubeSyncService {
           sourceChannelTitle: video.sourceChannelTitle ?? null,
           lastRefreshedAt: now,
         };
-        if (existingIds.has(video.youtubeVideoId)) {
-          await tx
-            .update(videos)
-            .set(metadata)
-            .where(
-              and(
-                eq(videos.appChannelId, channel.id),
-                eq(videos.youtubeVideoId, video.youtubeVideoId),
-              ),
-            );
-        } else {
-          toInsert.push({
+        await tx
+          .insert(videos)
+          .values({
             appChannelId: channel.id,
             youtubeVideoId: video.youtubeVideoId,
             ...metadata,
-          });
-        }
-      }
-      if (toInsert.length > 0) {
-        await tx.insert(videos).values(toInsert);
+          })
+          .onDuplicateKeyUpdate({ set: metadata });
       }
 
       if (removedVideoIds.length > 0) {
