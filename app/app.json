@@ -32,8 +32,8 @@
         {
           "ios": {
             "backgroundColor": "#FABD7E",
-            "image": "./assets/images/splash-logo.png",
-            "imageWidth": 206
+            "image": "./assets/images/splash.png",
+            "imageWidth": 526
           },
           "android": {
             "backgroundColor": "#FABD7E"

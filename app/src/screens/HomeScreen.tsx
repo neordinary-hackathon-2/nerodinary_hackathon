@@ -18,6 +18,8 @@ import {parseBridgeMessage} from '@/utils/bridge';
 
 const WEB_SOURCE = {uri: WEB_URL};
 const SAFE_AREA_EDGES: Edge[] = ['top', 'bottom'];
+// 웹이 빨리 떠도 스플래시가 깜박 지나가지 않도록 최소한 이만큼은 보여 준다.
+const SPLASH_MIN_DURATION_MS = 2000;
 
 // react-native-webview 14의 WebView 클래스 타입은 추가 props 매개변수 P의 기본값이 undefined라서
 // props 타입이 `WebViewProps & undefined` = never가 된다. 아래 ref와 JSX에서 P를 object로 지정한다.
@@ -25,6 +27,7 @@ const HomeScreen = () => {
   const webViewRef = useRef<WebView<object>>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isWebLoaded, setIsWebLoaded] = useState(false);
+  const [isSplashMinElapsed, setIsSplashMinElapsed] = useState(false);
   const playFeedback = useAppFeedback();
 
   // Android 뒤로가기: 웹 안에서 이동한 기록이 있으면 웹에서 뒤로 가고, 없으면 앱 기본 동작(종료)을 따른다.
@@ -45,6 +48,14 @@ const HomeScreen = () => {
     return () => subscription.remove();
   }, [canGoBack]);
 
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setIsSplashMinElapsed(true),
+      SPLASH_MIN_DURATION_MS,
+    );
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleMessage = (event: WebViewMessageEvent) => {
     const message = parseBridgeMessage(event.nativeEvent.data);
     if (message?.type === 'feedback') {
@@ -60,7 +71,7 @@ const HomeScreen = () => {
     setCanGoBack(navigation.canGoBack);
   };
 
-  // 첫 페이지 로딩이 끝나면(성공·실패 모두) 스플래시 화면을 내린다. 흰 화면 없이 스플래시에서 웹으로 넘어간다.
+  // 첫 페이지 로딩이 끝나고(성공·실패 모두) 최소 표시 시간이 지나면 스플래시 화면을 내린다. 흰 화면 없이 스플래시에서 웹으로 넘어간다.
   const handleLoadEnd = () => {
     setIsWebLoaded(true);
   };
@@ -83,7 +94,7 @@ const HomeScreen = () => {
           allowsFullscreenVideo
         />
       </SafeAreaView>
-      {!isWebLoaded && <SplashOverlay />}
+      {!(isWebLoaded && isSplashMinElapsed) && <SplashOverlay />}
     </View>
   );
 };
