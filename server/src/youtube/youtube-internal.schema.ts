@@ -110,7 +110,7 @@ export const youtubeSyncResultSchema = z
     rejected: z.array(rejectedVideoSchema),
     evictedCount: z.number().int().nonnegative().meta({
       description:
-        '채널당 유지 개수를 넘어, 저장된 지 오래된 순서로 지운 영상 수.',
+        '채널당 유지 개수를 넘어, 마지막으로 재확인한 지 오래된 순서로 지운 영상 수.',
       example: 0,
     }),
   })

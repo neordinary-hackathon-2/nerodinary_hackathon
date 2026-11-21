@@ -10,6 +10,6 @@ export const DEFAULT_MAX_DURATION_SECONDS = 7200;
 
 /**
  * 채널당 유지할 영상 수의 기본값. 수집기와 서버가 같은 값을 쓴다.
- * 수집기는 이만큼 채우고, 서버는 이 수를 넘는 영상을 저장된 지 오래된 것부터 지운다.
+ * 수집기는 이만큼 채우고, 서버는 이 수를 넘는 영상을 마지막으로 재확인한 지 오래된 순으로 지운다.
  */
 export const DEFAULT_TARGET_PER_CHANNEL = 100;
