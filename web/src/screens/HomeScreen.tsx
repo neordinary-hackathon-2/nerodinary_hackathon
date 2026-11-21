@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import PixelTv from '@/components/PixelTv';
 import Remote from '@/components/Remote';
 import TvPlayer from '@/components/TvPlayer';
+import VolumeNotice from '@/components/VolumeNotice';
 import useChannels from '@/hooks/useChannels';
 import useTvRemote from '@/hooks/useTvRemote';
 
@@ -19,6 +20,7 @@ const HomeScreen = () => {
     video,
     volume,
     isGuideOpen,
+    isVolumeNoticeOpen,
     togglePower,
     goToNextChannel,
     goToPreviousChannel,
@@ -29,6 +31,7 @@ const HomeScreen = () => {
     skipFailedVideo,
     openGuide,
     closeGuide,
+    closeVolumeNotice,
   } = useTvRemote();
   const guide = useChannels(isGuideOpen);
 
@@ -111,6 +114,20 @@ const HomeScreen = () => {
               isError={guide.isError}
               onClose={closeGuide}
             />
+          </div>
+        </div>
+      )}
+      {isVolumeNoticeOpen && (
+        // 편성표와 같은 어두운 배경 위 음량 안내 카드. 카드 밖을 눌러도 닫힌다.
+        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px] lg:items-center lg:pt-0">
+          <button
+            type="button"
+            aria-label="음량 안내 닫기"
+            className="absolute inset-0 cursor-default"
+            onClick={closeVolumeNotice}
+          />
+          <div className="relative h-fit">
+            <VolumeNotice onClose={closeVolumeNotice} />
           </div>
         </div>
       )}
