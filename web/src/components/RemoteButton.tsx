@@ -15,10 +15,10 @@ const KEY_COLOR =
 
 const buttonClassName: Record<RemoteButtonType, string> = {
   power:
-    'h-[28px] w-[30px] border-ink-900 bg-bg-surface shadow-key-sm hover:bg-bg-accent active:bg-ink-700 active:shadow-none',
-  refresh: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:shadow-none`,
-  guide: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:shadow-none`,
-  number: `flex h-[30px] w-[40px] items-center justify-center ${KEY_COLOR} shadow-key active:shadow-key-pressed`,
+    'h-[28px] w-[30px] border-ink-900 bg-bg-surface shadow-key-sm hover:bg-bg-accent active:translate-y-[3px] active:bg-ink-700 active:shadow-none',
+  refresh: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:translate-y-[3.387px] active:shadow-none`,
+  guide: `h-[31px] w-[35px] ${KEY_COLOR} shadow-key-md active:translate-y-[3.387px] active:shadow-none`,
+  number: `flex h-[30px] w-[40px] items-center justify-center ${KEY_COLOR} shadow-key active:translate-y-[3px] active:shadow-key-pressed`,
 };
 
 const buttonName: Record<RemoteButtonType, string | undefined> = {
