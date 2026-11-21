@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  DEFAULT_MAX_DURATION_SECONDS,
+  DEFAULT_MIN_DURATION_SECONDS,
+} from '../youtube/youtube.constants.js';
 
 export const ENVIRONMENTS = ['local', 'production', 'test'] as const;
 
@@ -38,5 +42,17 @@ export function validateEnv(config: Record<string, unknown>) {
       .join('\n');
     throw new Error(`환경변수 설정이 올바르지 않습니다.\n${details}`);
   }
+
+  // 한쪽만 설정해도 기본값과 비교한다. min > max 면 모든 영상이 거부되므로 부팅을 막는다.
+  // 수집기(youtube-collector/main.ts)도 같은 검증을 한다.
+  const env = parsed.data;
+  const minDuration = env.MIN_DURATION_SECONDS ?? DEFAULT_MIN_DURATION_SECONDS;
+  const maxDuration = env.MAX_DURATION_SECONDS ?? DEFAULT_MAX_DURATION_SECONDS;
+  if (minDuration > maxDuration) {
+    throw new Error(
+      'MIN_DURATION_SECONDS 가 MAX_DURATION_SECONDS 보다 큽니다.',
+    );
+  }
+
   return config;
 }
