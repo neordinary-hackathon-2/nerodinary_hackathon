@@ -1,19 +1,33 @@
-import {SymbolView} from 'expo-symbols';
-import {PropsWithChildren, useState} from 'react';
+import {type PropsWithChildren, useMemo, useState} from 'react';
 import {Pressable, StyleSheet} from 'react-native';
+
+import {SymbolView} from 'expo-symbols';
 import Animated, {FadeIn} from 'react-native-reanimated';
 
-import {ThemedText} from '@/components/themed-text';
-import {ThemedView} from '@/components/themed-view';
+import ThemedText from '@/components/ThemedText';
+import ThemedView from '@/components/ThemedView';
 import {Spacing} from '@/constants/theme';
-import {useTheme} from '@/hooks/use-theme';
+import useTheme from '@/hooks/useTheme';
 
-export function Collapsible({
-  children,
-  title,
-}: PropsWithChildren & {title: string}) {
+const CHEVRON_ICON_NAME = {
+  ios: 'chevron.right',
+  android: 'chevron_right',
+  web: 'chevron_right',
+} as const;
+
+interface CollapsibleProps extends PropsWithChildren {
+  title: string;
+}
+
+const Collapsible = ({children, title}: CollapsibleProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useTheme();
+  const chevronStyle = useMemo(
+    () => ({transform: [{rotate: isOpen ? '-90deg' : '90deg'}]}),
+    [isOpen],
+  );
+
+  const handlePress = () => setIsOpen((value) => !value);
 
   return (
     <ThemedView>
@@ -22,19 +36,15 @@ export function Collapsible({
           styles.heading,
           pressed && styles.pressedHeading,
         ]}
-        onPress={() => setIsOpen((value) => !value)}
+        onPress={handlePress}
       >
         <ThemedView type="backgroundElement" style={styles.button}>
           <SymbolView
-            name={{
-              ios: 'chevron.right',
-              android: 'chevron_right',
-              web: 'chevron_right',
-            }}
+            name={CHEVRON_ICON_NAME}
             size={14}
             weight="bold"
             tintColor={theme.text}
-            style={{transform: [{rotate: isOpen ? '-90deg' : '90deg'}]}}
+            style={chevronStyle}
           />
         </ThemedView>
 
@@ -49,7 +59,7 @@ export function Collapsible({
       )}
     </ThemedView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   heading: {
@@ -74,3 +84,5 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
   },
 });
+
+export default Collapsible;

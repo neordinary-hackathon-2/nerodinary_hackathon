@@ -1,15 +1,16 @@
-import * as Device from 'expo-device';
 import {Platform, StyleSheet} from 'react-native';
+
+import * as Device from 'expo-device';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
-import {AnimatedIcon} from '@/components/animated-icon';
-import {HintRow} from '@/components/hint-row';
-import {ThemedText} from '@/components/themed-text';
-import {ThemedView} from '@/components/themed-view';
-import {WebBadge} from '@/components/web-badge';
+import AnimatedIcon from '@/components/AnimatedIcon';
+import HintRow from '@/components/HintRow';
+import ThemedText from '@/components/ThemedText';
+import ThemedView from '@/components/ThemedView';
+import WebBadge from '@/components/WebBadge';
 import {BottomTabInset, MaxContentWidth, Spacing} from '@/constants/theme';
 
-function getDevMenuHint() {
+const getDevMenuHint = () => {
   if (Platform.OS === 'web') {
     return <ThemedText type="small">use browser devtools</ThemedText>;
   }
@@ -26,9 +27,9 @@ function getDevMenuHint() {
       press <ThemedText type="code">{shortcut}</ThemedText>
     </ThemedText>
   );
-}
+};
 
-export default function HomeScreen() {
+const HomeScreen = () => {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -47,7 +48,7 @@ export default function HomeScreen() {
           <HintRow
             title="Try editing"
             hint={
-              <ThemedText type="code">src/screens/home-screen.tsx</ThemedText>
+              <ThemedText type="code">src/screens/HomeScreen.tsx</ThemedText>
             }
           />
           <HintRow title="Dev tools" hint={getDevMenuHint()} />
@@ -61,7 +62,7 @@ export default function HomeScreen() {
       </SafeAreaView>
     </ThemedView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -98,3 +99,5 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.four,
   },
 });
+
+export default HomeScreen;
