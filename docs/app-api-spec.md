@@ -24,9 +24,9 @@
 
 ## 2. 공개 조회 API
 
-### GET /api/channels/random-videos — 전체 채널의 랜덤 영상
+### GET /api/channels/random-videos — 전체 채널의 랜덤 영상 10개씩
 
-한 번의 요청으로 모든 서비스 채널을 displayOrder 순서로 반환합니다. 서버는 채널마다 저장된 후보 중 영상 하나를 랜덤으로 선택합니다. 채널 목록 조회 API와 채널별 영상 조회 API는 두지 않습니다.
+한 번의 요청으로 모든 서비스 채널을 displayOrder 순서로 반환하고, 채널마다 저장된 후보 중 중복 없이 최대 10개를 랜덤으로 선택합니다. 후보가 10개보다 적으면 저장된 후보를 모두 반환하고, 후보가 없으면 빈 배열을 반환합니다. 채널 목록 조회 API와 채널별 영상 조회 API는 두지 않습니다.
 
 | 구분 | 필드 | 타입·필수 여부 | 의미 |
 |---|---|---|---|
@@ -34,13 +34,13 @@
 | 응답 | result.channels[] | 배열, 필수 | displayOrder 순서의 모든 서비스 채널 |
 | 응답 | result.channels[].channelCode | string, 필수 | CH05 같은 공개 서비스 채널 코드. DB 내부 ID는 노출하지 않음 |
 | 응답 | result.channels[].displayOrder | number, 필수 | 프론트의 다음 채널 이동 순서 |
-| 응답 | result.channels[].video | 객체 또는 null, 필수 | 해당 채널에서 선택한 영상. 후보가 없으면 null |
-| 응답 | result.channels[].video.youtubeVideoId | string, 영상이 있을 때 | YouTube iframe 재생 주소를 만드는 ID |
-| 응답 | result.channels[].video.title | string, 영상이 있을 때 | 영상 제목 |
-| 응답 | result.channels[].video.thumbnailUrl | string, 영상이 있을 때 | 카드·재생 전 화면용 썸네일 주소 |
-| 응답 | result.channels[].video.durationSeconds | number, 영상이 있을 때 | 영상 길이(초) |
+| 응답 | result.channels[].videos | 배열, 필수, 최대 10개 | 해당 채널에서 무작위로 선택한 영상. 후보가 없으면 빈 배열 |
+| 응답 | result.channels[].videos[].youtubeVideoId | string | YouTube iframe 재생 주소를 만드는 ID |
+| 응답 | result.channels[].videos[].title | string | 영상 제목 |
+| 응답 | result.channels[].videos[].thumbnailUrl | string | 카드·재생 전 화면용 썸네일 주소 |
+| 응답 | result.channels[].videos[].durationSeconds | number | 영상 길이(초) |
 
-응답 예시는 두 채널만 표시하며, 실제 응답은 등록된 모든 서비스 채널을 포함합니다.
+응답 예시는 두 채널만 표시합니다. CH05는 저장 후보가 2개, CH07은 후보가 없는 경우이며, 실제 응답은 등록된 모든 서비스 채널을 포함합니다. 후보가 10개 이상인 채널은 videos에 10개를 반환합니다.
 
     {
       "isSuccess": true,
@@ -51,25 +51,33 @@
           {
             "channelCode": "CH05",
             "displayOrder": 1,
-            "video": {
-              "youtubeVideoId": "YOUTUBE_VIDEO_ID_1",
-              "title": "영상 제목",
-              "thumbnailUrl": "https://i.ytimg.com/...",
-              "durationSeconds": 900
-            }
+            "videos": [
+              {
+                "youtubeVideoId": "YOUTUBE_VIDEO_ID_1",
+                "title": "영상 제목 1",
+                "thumbnailUrl": "https://i.ytimg.com/...",
+                "durationSeconds": 900
+              },
+              {
+                "youtubeVideoId": "YOUTUBE_VIDEO_ID_2",
+                "title": "영상 제목 2",
+                "thumbnailUrl": "https://i.ytimg.com/...",
+                "durationSeconds": 1200
+              }
+            ]
           },
           {
             "channelCode": "CH07",
             "displayOrder": 2,
-            "video": null
+            "videos": []
           }
         ]
       }
     }
 
-프론트는 받은 배열에서 채널번호 입력 또는 다음 채널 버튼에 맞는 channelCode를 선택합니다. 채널을 바꿀 때 추가 API를 호출하지 않습니다. 같은 응답에서는 채널당 영상 하나가 유지되며, 새 랜덤 구성이 필요할 때 이 API를 다시 호출합니다. 아이콘·테마 색상·채널 자막은 프론트에서 채널 코드로 정하고 수집 검색어는 공개 응답에 포함하지 않습니다. 플레이어의 실제 재생 실패는 프론트에서 처리합니다.
+프론트는 받은 배열에서 채널번호 입력 또는 다음 채널 버튼에 맞는 channelCode를 선택하고, 그 채널의 videos 중에서 재생할 영상을 고릅니다. 채널을 바꿀 때 추가 API를 호출하지 않습니다. 새 랜덤 후보 묶음이 필요할 때 이 API를 다시 호출합니다. 아이콘·테마 색상·채널 자막은 프론트에서 채널 코드로 정하고 수집 검색어는 공개 응답에 포함하지 않습니다. 플레이어의 실제 재생 실패는 프론트에서 처리합니다.
 
-video가 null인 경우는 채널 자체는 있지만 DB에 저장된 재생 후보가 0개일 때입니다. 초기 시딩 전이거나 기존 후보가 모두 재생 조건을 잃어 제거된 경우가 해당합니다. 한 채널만 비어 있어도 전체 응답은 200으로 유지하고, 프론트는 그 채널에 준비 중 안내를 보여주거나 다음 채널로 이동합니다. 즉시 같은 API를 재요청해도 후보가 생기지 않으므로 null만을 이유로 자동 재시도하지 않습니다. 네트워크 오류나 500 응답에 대한 재시도는 별도로 처리합니다.
+videos가 빈 배열인 경우는 채널 자체는 있지만 DB에 저장된 재생 후보가 0개일 때입니다. 초기 시딩 전이거나 기존 후보가 모두 재생 조건을 잃어 제거된 경우가 해당합니다. 한 채널만 비어 있어도 전체 응답은 200으로 유지하고, 프론트는 그 채널에 준비 중 안내를 보여주거나 다음 채널로 이동합니다. 즉시 같은 API를 재요청해도 후보가 생기지 않으므로 빈 배열만을 이유로 자동 재시도하지 않습니다. 네트워크 오류나 500 응답에 대한 재시도는 별도로 처리합니다.
 
 ## 3. GitHub Actions용 내부 API
 
