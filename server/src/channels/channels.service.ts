@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { ResilienceService, type ResiliencePolicy } from '@nestjs/resilience';
+import { RetryPolicy } from '@nestjs/resilience';
 import { asc, eq, sql } from 'drizzle-orm';
 import type {
   ChannelListResultDto,
@@ -13,23 +13,13 @@ import { videos } from '../database/schema/video.schema.js';
 
 @Injectable()
 export class ChannelsService {
-  private readonly databaseReadPolicy: ResiliencePolicy;
+  private readonly databaseReadPolicy = new RetryPolicy({
+    attempts: 2,
+    backoff: { delay: '100ms', factor: 1, maxDelay: '100ms', jitter: 'none' },
+    retryIf: isTransientDatabaseError,
+  });
 
-  constructor(
-    @InjectDrizzle() private readonly db: Database,
-    resilience: ResilienceService,
-  ) {
-    this.databaseReadPolicy = resilience.create(
-      {
-        retry: {
-          attempts: 2,
-          backoff: { delay: '100ms', factor: 1, maxDelay: '100ms', jitter: 'none' },
-          retryIf: isTransientDatabaseError,
-        },
-      },
-      'channels-database-read',
-    );
-  }
+  constructor(@InjectDrizzle() private readonly db: Database) {}
 
   async getChannels(): Promise<ChannelListResultDto> {
     return this.databaseReadPolicy.execute(async () => {
