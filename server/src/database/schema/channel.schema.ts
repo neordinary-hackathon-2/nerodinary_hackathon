@@ -13,15 +13,16 @@ export const channels = mysqlTable(
   'channels',
   {
     id: primaryId(),
-    code: varchar({ length: 10 }).notNull(),
+    channelNumber: tinyint({ unsigned: true }).notNull(),
     name: varchar({ length: 50 }).notNull(),
-    slogan: varchar({ length: 150 }),
+    slogan: varchar({ length: 150 }).notNull(),
     role: varchar({ length: 200 }),
-    displayOrder: tinyint({ unsigned: true }).notNull(),
     seedKeywords: json().$type<string[]>().notNull(),
     ...timestamps,
   },
-  (table) => [uniqueIndex('channels_code_uq').on(table.code)],
+  (table) => [
+    uniqueIndex('channels_channel_number_uq').on(table.channelNumber),
+  ],
 );
 
 type _ChannelEntityCheck = AssertNoMismatch<

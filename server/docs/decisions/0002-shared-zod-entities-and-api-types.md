@@ -13,6 +13,7 @@ FE와 서버가 엔티티와 API 타입을 공통으로 쓰기로 했다. 데코
 ## 결정
 
 - 도메인 엔티티(`shared/entities/`)와 API 요청/응답(`shared/api/`)을 레포 루트 `shared/`에 zod 스키마로 정의한다. 요청/응답은 엔티티에서 파생시키고, 타입은 `z.infer`로 뽑는다.
+- `shared/`에 두는 기준은 FE가 쓰는지다. FE가 호출하지 않는 내부 API(수집기용 `/api/internal/youtube/*`)의 요청/응답 스키마는 `server/src/youtube/`에 둔다 (2026-11-21 추가, 결정자: sychoi).
 - DB 테이블(Drizzle)은 `server/` 안에 따로 정의한다. `shared/`가 DB 라이브러리에 의존하지 않게 하기 위해서다. 어긋남은 서버의 타입 대조(`server/src/database/entity-check.ts`)로 잡는다.
 - 서버는 같은 스키마로 검증(`StandardSchemaValidationPipe`)과 Swagger 문서를 만든다. class-validator, class-transformer는 쓰지 않는다.
 - FE는 tsconfig `paths`의 `@shared` 별칭으로 **`import type`만** 한다. 런타임에는 서버 코드가 번들에 들어가지 않는다.

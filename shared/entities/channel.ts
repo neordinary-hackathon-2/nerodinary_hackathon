@@ -4,11 +4,10 @@ import {z} from 'zod';
 export const channelSchema = z
   .object({
     id: z.number().int().positive().meta({example: 1}),
-    code: z.string().min(1).max(10).meta({example: 'CH05'}),
+    channelNumber: z.number().int().min(0).max(9).meta({example: 1}),
     name: z.string().min(1).max(50).meta({example: '예능'}),
-    slogan: z.string().max(150).nullable().meta({example: '웃다 체하지 마세요'}),
+    slogan: z.string().min(1).max(150).meta({example: '웃다 체하지 마세요'}),
     role: z.string().max(200).nullable().meta({example: '가벼운 웃음, 기본 채널'}),
-    displayOrder: z.number().int().positive().meta({example: 1}),
     createdAt: z.string().meta({example: '2026-11-21T08:00:00.000Z'}),
     updatedAt: z.string().meta({example: '2026-11-21T08:00:00.000Z'}),
   })

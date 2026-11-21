@@ -1,0 +1,13 @@
+{
+  "channels": [
+    {"channelNumber": 1, "seedKeywords": ["예능 클립", "웃긴 모음", "레전드 장면"], "storedVideoIds": []},
+    {"channelNumber": 2, "seedKeywords": ["재테크 쉽게", "경제 5분", "주식 기초"], "storedVideoIds": []},
+    {"channelNumber": 3, "seedKeywords": ["뉴스 요약", "오늘의 이슈", "1분 뉴스"], "storedVideoIds": []},
+    {"channelNumber": 4, "seedKeywords": ["먹방", "라면 먹방", "ASMR 식사"], "storedVideoIds": []},
+    {"channelNumber": 5, "seedKeywords": ["자취 요리", "5분 레시피", "요리 대결"], "storedVideoIds": []},
+    {"channelNumber": 6, "seedKeywords": ["고양이 영상", "강아지 모음", "동물 구조"], "storedVideoIds": []},
+    {"channelNumber": 7, "seedKeywords": ["라이브 클립", "플레이리스트", "뮤직비디오"], "storedVideoIds": []},
+    {"channelNumber": 8, "seedKeywords": ["경기 하이라이트", "야구 명장면", "축구 명장면", "스포츠 레전드"], "storedVideoIds": []},
+    {"channelNumber": 9, "seedKeywords": ["홈쇼핑 방송 클립", "쇼호스트 멘트 모음", "홈쇼핑 레전드"], "storedVideoIds": []}
+  ]
+}
