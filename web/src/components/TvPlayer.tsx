@@ -12,6 +12,7 @@ const TvPlayer = ({src}: TvPlayerProps) => {
       src={src}
       width="100%"
       height="100%"
+      playing
       controls
       playsInline
       config={{youtube: {rel: 0}}}
