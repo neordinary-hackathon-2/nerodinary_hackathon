@@ -24,14 +24,34 @@ function videoItem(id: string) {
   };
 }
 
-function client(fetchFn: FetchLike) {
+function client(fetchFn: FetchLike, log?: (message: string) => void) {
   return createYoutubeClient({
     apiKey: 'test-key',
     regionCode: 'KR',
     relevanceLanguage: 'ko',
     fetchFn,
+    log,
+    // 재시도 대기를 실제로 기다리지 않는다.
+    sleep: () => Promise.resolve(),
   });
 }
+
+/** 정해진 응답을 순서대로 돌려주는 fetch. 응답 대신 Error 를 넣으면 던진다. */
+function responses(...items: (Response | Error)[]) {
+  return vi.fn<FetchLike>(() => {
+    const next = items.shift();
+    if (!next) {
+      throw new Error('예상보다 많이 호출했습니다');
+    }
+    return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
+  });
+}
+
+const searchQuery = {
+  query: '가',
+  duration: 'medium',
+  pageToken: null,
+} as const;
 
 describe('searchVideoIds', () => {
   it('영상·임베드·길이 필터를 붙이고 키는 URL 이 아닌 헤더로 보낸다', async () => {
@@ -207,13 +227,31 @@ describe('fetchVideoDetails', () => {
     expect(lookup.failedIds.size).toBe(0);
   });
 
-  it('호출이 실패한 배치의 ID 는 failedIds 로 돌려준다', async () => {
-    const fetchFn: FetchLike = () => Promise.resolve(json({}, 500));
+  it('재시도까지 실패한 배치의 ID 는 failedIds 로 돌려준다', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => Promise.resolve(json({}, 500)));
 
     const lookup = await client(fetchFn).fetchVideoDetails(['a', 'b']);
 
+    expect(fetchFn).toHaveBeenCalledTimes(3);
     expect(lookup.found.size).toBe(0);
     expect([...lookup.failedIds]).toEqual(['a', 'b']);
+  });
+
+  it('일시 오류 뒤 재시도에 성공하면 정상 조회로 본다', async () => {
+    const fetchFn = responses(
+      new TypeError('fetch failed'),
+      json({ items: [videoItem('a')] }),
+    );
+    const logs: string[] = [];
+
+    const lookup = await client(fetchFn, (m) => logs.push(m)).fetchVideoDetails(
+      ['a'],
+    );
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect([...lookup.found.keys()]).toEqual(['a']);
+    expect(lookup.failedIds.size).toBe(0);
+    expect(logs).toEqual(['YouTube videos 재시도 2/3: fetch failed']);
   });
 
   it('ID 가 없으면 호출하지 않는다', async () => {
@@ -222,5 +260,125 @@ describe('fetchVideoDetails', () => {
     await client(fetchFn).fetchVideoDetails([]);
 
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('재시도', () => {
+  it('검색이 503 뒤 성공하면 결과를 돌려준다', async () => {
+    const fetchFn = responses(
+      json({ error: { errors: [{ reason: 'backendError' }] } }, 503),
+      json({ items: [{ id: { videoId: 'a' } }] }),
+    );
+
+    const page = await client(fetchFn).searchVideoIds(searchQuery);
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(page.videoIds).toEqual(['a']);
+  });
+
+  it('잘못된 키(400)와 할당량 초과(429)는 다시 부르지 않는다', async () => {
+    for (const status of [400, 403, 429]) {
+      const fetchFn = vi.fn<FetchLike>(() =>
+        Promise.resolve(
+          json(
+            { error: { errors: [{ reason: 'rateLimitExceeded' }] } },
+            status,
+          ),
+        ),
+      );
+
+      await expect(
+        client(fetchFn).searchVideoIds(searchQuery),
+      ).rejects.toBeInstanceOf(YoutubeApiError);
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('검색 재시도 여부는 beforeRetry 가 정한다', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => Promise.resolve(json({}, 500)));
+    const attempts: number[] = [];
+
+    await expect(
+      client(fetchFn).searchVideoIds(searchQuery, {
+        beforeRetry: (info) => {
+          attempts.push(info.attempt);
+          return false;
+        },
+      }),
+    ).rejects.toBeInstanceOf(YoutubeApiError);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(attempts).toEqual([1]);
+  });
+
+  it('Retry-After 를 오류에 담는다', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve(
+        new Response('{}', { status: 503, headers: { 'Retry-After': '2' } }),
+      ),
+    );
+
+    const error: unknown = await client(fetchFn)
+      .searchVideoIds(searchQuery)
+      .catch((e: unknown) => e);
+
+    expect((error as YoutubeApiError).retryAfterMs).toBe(2_000);
+  });
+});
+
+describe('재시도 시간 상한과 대기', () => {
+  function recordingClient(fetchFn: FetchLike) {
+    const waits: number[] = [];
+    const yt = createYoutubeClient({
+      apiKey: 'test-key',
+      regionCode: 'KR',
+      relevanceLanguage: 'ko',
+      fetchFn,
+      sleep: (ms) => {
+        waits.push(ms);
+        return Promise.resolve();
+      },
+    });
+    return { yt, waits };
+  }
+
+  it('타임아웃은 1번만 다시 시도한다', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.reject(new DOMException('timeout', 'TimeoutError')),
+    );
+    const { yt } = recordingClient(fetchFn);
+
+    const lookup = await yt.fetchVideoDetails(['a']);
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect([...lookup.failedIds]).toEqual(['a']);
+  });
+
+  it('본문을 받다가 연결이 끊기면 다시 시도한다', async () => {
+    const broken = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.error(new TypeError('terminated'));
+        },
+      }),
+    );
+    const fetchFn = responses(broken, json({ items: [videoItem('a')] }));
+    const { yt } = recordingClient(fetchFn);
+
+    const lookup = await yt.fetchVideoDetails(['a']);
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect([...lookup.found.keys()]).toEqual(['a']);
+  });
+
+  it('Retry-After 만큼 기다린 뒤 다시 시도한다', async () => {
+    const fetchFn = responses(
+      new Response('{}', { status: 503, headers: { 'Retry-After': '2' } }),
+      json({ items: [] }),
+    );
+    const { yt, waits } = recordingClient(fetchFn);
+
+    await yt.searchVideoIds(searchQuery);
+
+    expect(waits).toEqual([2_000]);
   });
 });
