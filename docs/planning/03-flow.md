@@ -64,6 +64,82 @@ flowchart LR
 - 헤더: 앱 이름 "밥송국" + ? 아이콘. ? 아이콘을 누르면 채널 편성표 팝업(S5)이 열린다
 - 채널 전환 효과: 지지직 노이즈 → 새 채널
 
+## 디자인 시스템 (Retro Pixel)
+> 기준: Figma 「밥송국」의 Design System · Retro Pixel 섹션과 btn(Remote-Btn) 섹션. 발표 appendix B13(컬러·폰트·아이콘)·B14(컴포넌트)에 같은 내용이 있다
+> 컨셉: 크림 TV + 피치 리모컨 + 올리브 LCD. 모서리는 직각(라디우스 0), 외곽선은 ink-900, 그림자는 오프셋만 있는 하드 섀도 (11.22 결정)
+
+### 컬러 토큰
+프리미티브 12종 (변수 이름은 `primitive/<이름>`)
+
+| 이름 | 헥스 | 이름 | 헥스 |
+|---|---|---|---|
+| ink-900 | #2B2A1C | cream-100 | #FFEDC5 |
+| ink-700 | #4D4C34 | white | #FFFFFF |
+| brown-700 | #814B14 | olive-100 | #D7D3AB |
+| brown-500 | #7A5440 | olive-300 | #B4B08A |
+| peach-400 | #FABD7E | olive-500 | #9A9872 |
+| butter-300 | #FFDC8C | olive-700 | #7C7B58 |
+
+시맨틱 토큰 15개 → 프리미티브 연결
+
+| 토큰 | 연결 | 토큰 | 연결 |
+|---|---|---|---|
+| bg/app | white | text/primary | ink-900 |
+| bg/surface | cream-100 | text/secondary | ink-700 |
+| bg/accent | peach-400 | text/brand | brown-700 |
+| bg/highlight | butter-300 | text/muted | brown-500 |
+| bg/inverse | ink-900 | text/on-inverse | cream-100 |
+| screen/lcd-light | olive-300 | border/strong | ink-900 |
+| screen/lcd | olive-500 | shadow/hard | ink-900 |
+| screen/lcd-dark | olive-700 | | |
+
+### 폰트
+| 폰트 | 용도 |
+|---|---|
+| Silkscreen | 영문 (리모컨 VOL·CH 라벨은 Bold 11) |
+| Press Start 2P | 영문 (리모컨 숫자 키, 11) |
+| Pretendard | 한글 |
+
+> Pretendard는 Figma 파일에 설치돼 있지 않아 appendix B13에는 글자 샘플이 없다 (확인 필요)
+
+### Pixel Icon (9종)
+play · fullscreen · warning · clock · refresh · up · down · power · guide
+
+### 컴포넌트
+| 컴포넌트 | 변형 |
+|---|---|
+| Pixel TV | loading · no signal(컬러바) · off |
+| Pixel Remote | default · big size |
+| Badge | On Air · Off Air |
+| Error | 1종 |
+| Remote Btn | power · refresh · volume · channel · number (상태 default · hover · pressed, volume·channel은 위·아래 버튼별 hover_up/down, pressed_up/down) |
+| PWR big size | default · hover · pressed |
+
+### Remote-Btn 규격
+| 타입 | 크기(px) | border | shadow y (기본 / 눌림) | 내용물 |
+|---|---|---|---|---|
+| power | 30×28 | 3 (inside) | 3 / 1 | icon/power 18×18 |
+| refresh | 31×28 | 3 (inside) | 3 / 1 | Pixel Icon refresh 15×15 |
+| volume | 44×99 | 3 (inside) | 4 / 1 | + 13×13 · VOL(Silkscreen Bold 11) · − 13×3 |
+| channel | 44×99 | 3 (inside) | 4 / 1 | ▲ 23×13 · CH(Silkscreen Bold 11) · ▼ 23×13 |
+| number | 41×31 | 3 (inside) | 4 / 1 | 숫자(Press Start 2P 11) |
+
+| 요소 | default | hover | pressed |
+|---|---|---|---|
+| container · power | bg/surface #FFEDC5 | bg/accent #FABD7E | ink-700 #4D4C34 |
+| container · 그 외 | #FEE0BB (토큰 없음) | bg/accent #FABD7E | bg/accent #FABD7E |
+| border · power | ink-900 | ink-900 | ink-900 |
+| border · 그 외 | #000000 50% | #000000 100% | #000000 100% |
+| content · power | color/primary #2B2B2B | color/primary #2B2B2B | color/on-primary #FFFFFF |
+| content · 그 외 | #000000 50% | #000000 100% | #000000 100% |
+| shadow | #2B2A1C · y 3/4 | #2B2A1C · y 3/4 | #2B2A1C · y 1 (눌림) |
+
+상태 규칙
+- hover: 배경이 bg/accent(#FABD7E)로 바뀌고 외곽선·글자가 100% 진해진다. 그림자는 default와 같다
+- pressed: hover와 같은 색에 그림자가 y 1로 줄어 눌린 느낌을 준다. power만 진한 배경(#4D4C34) + 흰 아이콘이다
+- 그림자: 작은 버튼(power·refresh) y 3, 큰 버튼(volume·channel·number) y 4, 눌림 y 1. 모두 정수다
+- 남은 확인: 기본색 #FEE0BB, #000000 50%는 아직 연결된 색 토큰이 없다
+
 ## 점검
 - [ ] 각 화면에서 해야 할 행동/다음 단계가 명확한가 (S2는 버튼 1개)
 - [ ] 불필요한 이동·반복 입력이 없는가 (로그인·검색 없음)
