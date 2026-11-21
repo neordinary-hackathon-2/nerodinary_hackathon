@@ -19,6 +19,7 @@ interface RemoteProps {
   onClickChannelUp: () => void;
   onClickChannelDown: () => void;
   onClickRefresh: () => void;
+  onClickGuide: () => void;
   onClickNumber: (channelNumber: number) => void;
 }
 
@@ -37,6 +38,7 @@ const Remote = ({
   onClickChannelUp,
   onClickChannelDown,
   onClickRefresh,
+  onClickGuide,
   onClickNumber,
 }: RemoteProps) => {
   const isBig = size === 'big';
@@ -75,7 +77,11 @@ const Remote = ({
                 disabled={isDisabled}
                 onClick={onClickRefresh}
               />
-              <RemoteButton type="guide" disabled={isDisabled} />
+              <RemoteButton
+                type="guide"
+                disabled={isDisabled}
+                onClick={onClickGuide}
+              />
             </div>
             <RemoteRocker
               type="channel"
