@@ -120,7 +120,7 @@ const useTvRemote = () => {
   };
 
   const moveChannel = (offset: 1 | -1) => {
-    postToApp({type: 'feedback', feedback: 'tap'});
+    postToApp({type: 'feedback', feedback: 'silentTap'});
     const count = cycleChannelNumbers.length;
     if (count === 0) {
       return;
@@ -167,7 +167,7 @@ const useTvRemote = () => {
   };
 
   const changeVolume = (direction: AppVolumeDirection) => {
-    postToApp({type: 'feedback', feedback: 'tap'});
+    postToApp({type: 'feedback', feedback: 'silentTap'});
     if (isInApp()) {
       postToApp({type: 'volume', direction});
       return;
