@@ -8,15 +8,13 @@
     "scheme": "bapsongguk",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.neordinary.bapsongguk"
     },
     "android": {
       "package": "com.neordinary.bapsongguk",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FABD7E",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -32,8 +30,8 @@
         {
           "ios": {
             "backgroundColor": "#FABD7E",
-            "image": "./assets/images/splash-logo.png",
-            "imageWidth": 206
+            "image": "./assets/images/splash.png",
+            "imageWidth": 526
           },
           "android": {
             "backgroundColor": "#FABD7E"

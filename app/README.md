@@ -21,16 +21,18 @@ npx expo run:android --variant release        # Android release 빌드
 
 ## 구조
 
-| 파일                               | 역할                                                                                                  |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `src/screens/HomeScreen.tsx`       | 웹을 띄우는 WebView. 첫 로딩이 끝날 때까지 스플래시를 덮어 둔다. Android 뒤로가기는 웹 기록을 따른다  |
-| `src/components/SplashOverlay.tsx` | Figma 「splash」 전체 화면. 네이티브 스플래시를 이어받아 웹 첫 로딩이 끝나면 사라진다                 |
-| `src/hooks/useAppFeedback.ts`      | 피드백 종류(`tap`, `powerOn`, `powerOff`)별 햅틱·효과음                                               |
-| `src/utils/bridge.ts`              | WebView 메시지(JSON 문자열)를 읽는다. 모르는 메시지는 무시한다                                        |
-| `src/constants/web.ts`             | 웹 주소. 기본은 배포 주소, `EXPO_PUBLIC_WEB_URL`이 있으면 그 주소                                     |
-| `modules/system-volume/`           | 기기 미디어 볼륨을 한 단계 올리고 내리는 로컬 Expo 모듈 (Android `AudioManager`, iOS `MPVolumeView`)  |
-| `assets/sounds/`                   | 효과음 (8비트 사각파, 22.05kHz mono)                                                                  |
-| `assets/images/splash-*.png`       | 스플래시 이미지. Figma 「splash」를 5배로 잘라 배경(`#FABD7E`)을 투명하게 뺀 PNG (로고·로딩줄·저작권) |
+| 파일                               | 역할                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/screens/HomeScreen.tsx`       | 웹을 띄우는 WebView. 첫 로딩이 끝날 때까지 스플래시를 덮어 둔다. Android 뒤로가기는 웹 기록을 따른다            |
+| `src/components/SplashOverlay.tsx` | Figma 「splash」 전체 화면. 네이티브 스플래시를 이어받아 웹 첫 로딩이 끝나면 사라진다                           |
+| `src/hooks/useAppFeedback.ts`      | 피드백 종류(`tap`, `powerOn`, `powerOff`)별 햅틱·효과음                                                         |
+| `src/utils/bridge.ts`              | WebView 메시지(JSON 문자열)를 읽는다. 모르는 메시지는 무시한다                                                  |
+| `src/constants/web.ts`             | 웹 주소. 기본은 배포 주소, `EXPO_PUBLIC_WEB_URL`이 있으면 그 주소                                               |
+| `modules/system-volume/`           | 기기 미디어 볼륨을 한 단계 올리고 내리는 로컬 Expo 모듈 (Android `AudioManager`, iOS `MPVolumeView`)            |
+| `assets/sounds/`                   | 효과음 (8비트 사각파, 22.05kHz mono)                                                                            |
+| `assets/images/splash.png`         | 스플래시 그림. Figma 「splash」의 TV·로고·로딩줄을 화면 정가운데 기준 526dp 정사각형(4배, 배경 투명)에 그린 PNG |
+| `assets/images/icon.png`           | 앱 아이콘(iOS·기본). Figma 앱 아이콘의 32x32 픽셀 그림을 칸당 32px로 키운 1024px PNG                            |
+| `assets/images/android-icon-*.png` | Android 적응형 아이콘 전경·단색. 같은 그림을 108dp 캔버스 가운데 64dp로 두고, 배경은 `#FABD7E` 색               |
 
 ## 웹 → 앱 메시지
 
@@ -58,12 +60,12 @@ Android `Toggle_On`·`Toggle_Off`는 Android 14(API 34)부터 있어서, 그 아
 
 ## 스플래시
 
-네이티브 스플래시는 가운데 이미지 한 장만 그릴 수 있어서 두 단계로 보여 준다.
+네이티브 스플래시는 가운데 이미지 한 장만 그릴 수 있어서 두 단계로 보여 준다. 그림(`splash.png`)은 Figma 시안의 TV·로고·로딩줄을 화면 정가운데를 기준으로 한 526dp 정사각형에 담아, 두 단계에서 같은 크기·자리에 그린다.
 
-1. 네이티브 스플래시: 배경 `#FABD7E`. iOS는 가운데에 Figma와 같은 크기(206dp)의 로고(`splash-logo.png`)를 그린다.
-2. JS가 뜨면 `SplashOverlay`가 Figma 시안 전체(로고·로딩줄·저작권)를 같은 자리에 덮고 네이티브 스플래시를 내린다. 웹 첫 로딩이 끝나면 페이드아웃한다.
+1. 네이티브 스플래시: 배경 `#FABD7E`. iOS는 `splash.png`를 그린다(`imageWidth` 526).
+2. JS가 뜨면 `SplashOverlay`가 같은 그림을 같은 자리에 덮고 네이티브 스플래시를 내린다. 웹 첫 로딩이 끝나고 최소 2초가 지나면 페이드아웃한다.
 
-Android 12 이상은 스플래시 아이콘을 지름 192dp 원으로 자른다. 로고를 원에 맞춰 줄이면 `SplashOverlay`의 실제 크기 로고와 겹쳐 보이므로, Android 네이티브 스플래시는 배경색만 쓰고 로고는 `SplashOverlay`부터 보여 준다.
+Android 12 이상은 스플래시 아이콘을 지름 192dp 원으로 자르므로, Android 네이티브 스플래시는 배경색만 쓰고 그림은 `SplashOverlay`부터 보여 준다.
 
 ## WebView 설정
 
