@@ -28,7 +28,9 @@
   --color-text-brand: var(--color-brown-700);
   --color-text-muted: var(--color-brown-500);
   --color-text-on-inverse: var(--color-cream-100);
+  --color-text-hint: #736b66;
   --color-border-strong: var(--color-ink-900);
+  --color-border-subtle: #e1e3e8;
   --color-shadow-hard: var(--color-ink-900);
 
   --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
