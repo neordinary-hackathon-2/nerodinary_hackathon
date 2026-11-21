@@ -2,5 +2,8 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": ["../.oxlintrc.json"],
   "plugins": ["typescript", "unicorn", "oxc", "react", "nextjs"],
+  "rules": {
+    "react/forbid-dom-props": ["error", {"forbid": ["style"]}]
+  },
   "ignorePatterns": ["next-env.d.ts"]
 }

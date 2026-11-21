@@ -1,13 +1,11 @@
-import {Image} from 'expo-image';
 import {StyleSheet, View} from 'react-native';
-import Animated, {Keyframe, Easing} from 'react-native-reanimated';
 
-import classes from './animated-icon.module.css';
+import {Image} from 'expo-image';
+import Animated, {Easing, Keyframe} from 'react-native-reanimated';
+
+import classes from '@/components/AnimatedIcon.module.css';
+
 const DURATION = 300;
-
-export function AnimatedSplashOverlay() {
-  return null;
-}
 
 const keyframe = new Keyframe({
   0: {
@@ -54,7 +52,7 @@ const glowKeyframe = new Keyframe({
   },
 });
 
-export function AnimatedIcon() {
+const AnimatedIcon = () => {
   return (
     <View style={styles.iconContainer}>
       <Animated.View
@@ -85,16 +83,9 @@ export function AnimatedIcon() {
       </Animated.View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    width: '100%',
-    zIndex: 1000,
-    position: 'absolute',
-    top: 128 / 2 + 138,
-  },
   imageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -121,3 +112,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
 });
+
+export default AnimatedIcon;

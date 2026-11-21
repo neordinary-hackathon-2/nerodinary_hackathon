@@ -1,43 +1,23 @@
+import {Pressable, StyleSheet, useColorScheme, View} from 'react-native';
 import {
-  Tabs,
   TabList,
-  TabTrigger,
+  type TabListProps,
+  Tabs,
   TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
+  TabTrigger,
+  type TabTriggerSlotProps,
 } from 'expo-router/ui';
-import {SymbolView} from 'expo-symbols';
-import {Pressable, useColorScheme, View, StyleSheet} from 'react-native';
 
+import {SymbolView} from 'expo-symbols';
+
+import ExternalLink from '@/components/ExternalLink';
+import ThemedText from '@/components/ThemedText';
+import ThemedView from '@/components/ThemedView';
 import {Colors, MaxContentWidth, Spacing} from '@/constants/theme';
 
-import {ExternalLink} from './external-link';
-import {ThemedText} from './themed-text';
-import {ThemedView} from './themed-view';
+const DOCS_ICON_NAME = {ios: 'arrow.up.right.square', web: 'link'} as const;
 
-export default function AppTabs() {
-  return (
-    <Tabs>
-      <TabSlot style={{height: '100%'}} />
-      <TabList asChild>
-        <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
-            <TabButton>Home</TabButton>
-          </TabTrigger>
-          <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>Explore</TabButton>
-          </TabTrigger>
-        </CustomTabList>
-      </TabList>
-    </Tabs>
-  );
-}
-
-export function TabButton({
-  children,
-  isFocused,
-  ...props
-}: TabTriggerSlotProps) {
+const TabButton = ({children, isFocused, ...props}: TabTriggerSlotProps) => {
   return (
     <Pressable {...props} style={({pressed}) => pressed && styles.pressed}>
       <ThemedView
@@ -53,9 +33,9 @@ export function TabButton({
       </ThemedView>
     </Pressable>
   );
-}
+};
 
-export function CustomTabList(props: TabListProps) {
+const CustomTabList = (props: TabListProps) => {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
@@ -73,7 +53,7 @@ export function CustomTabList(props: TabListProps) {
             <ThemedText type="link">Docs</ThemedText>
             <SymbolView
               tintColor={colors.text}
-              name={{ios: 'arrow.up.right.square', web: 'link'}}
+              name={DOCS_ICON_NAME}
               size={12}
             />
           </Pressable>
@@ -81,9 +61,30 @@ export function CustomTabList(props: TabListProps) {
       </ThemedView>
     </View>
   );
-}
+};
+
+const AppTabs = () => {
+  return (
+    <Tabs>
+      <TabSlot style={styles.tabSlot} />
+      <TabList asChild>
+        <CustomTabList>
+          <TabTrigger name="home" href="/" asChild>
+            <TabButton>Home</TabButton>
+          </TabTrigger>
+          <TabTrigger name="explore" href="/explore" asChild>
+            <TabButton>Explore</TabButton>
+          </TabTrigger>
+        </CustomTabList>
+      </TabList>
+    </Tabs>
+  );
+};
 
 const styles = StyleSheet.create({
+  tabSlot: {
+    height: '100%',
+  },
   tabListContainer: {
     position: 'absolute',
     width: '100%',
@@ -121,3 +122,5 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.three,
   },
 });
+
+export default AppTabs;

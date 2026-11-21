@@ -19,9 +19,9 @@ cd web && pnpm install && pnpm dev
 
 CI/CD 워크플로는 `.github/workflows/`에 있고, `paths` 필터로 해당 폴더가 바뀔 때만 실행된다.
 
-## 린트 / 포맷 (app, web 공통)
+## 코드 컨벤션 (app, web 공통)
 
-모든 파트는 TypeScript를 쓴다. app과 web은 루트의 설정을 공유한다.
+네이밍, 타입, API·상태 관리, 스타일, 커밋 메시지 규칙은 [CONVENTIONS.md](CONVENTIONS.md)에 있다. 모든 파트는 TypeScript를 쓰고, app과 web은 루트의 린트·포맷 설정을 공유한다.
 
 - [`.prettierrc`](.prettierrc): 세미콜론 필수, 중괄호 안 공백 없음(`{a}`), 작은따옴표, trailing comma. Prettier는 가까운 설정을 위로 찾아 올라가므로 app/web은 별도 설정 없이 이 파일을 쓴다. server는 자체 `.prettierrc`를 쓴다.
 - [`.oxlintrc.json`](.oxlintrc.json): oxlint 공통 규칙. `app/.oxlintrc.json`, `web/.oxlintrc.json`이 `extends`로 가져다 쓰고, 파트별 플러그인(web의 `nextjs` 등)만 덧붙인다.
@@ -44,9 +44,9 @@ src/
 └── api/         # 서버 API 호출
 ```
 
-- `src/app/`의 파일은 전부 라우트로 잡힌다. 라우트 파일은 `export {default} from '@/screens/home-screen';`처럼 화면만 연결하고, 컴포넌트·훅은 다른 폴더에 둔다.
+- `src/app/`의 파일은 전부 라우트로 잡힌다. 라우트 파일은 `export {default} from '@/screens/HomeScreen';`처럼 화면만 연결한다.
 - 화면 폴더 이름은 `pages`가 아니라 `screens`다. Next.js는 `src/pages/`를 Pages Router 라우트로 인식한다.
-- import는 `@/` 별칭을 쓴다 (`@/components/...`).
+- 폴더별 책임과 파일명 규칙은 [CONVENTIONS.md 6장](CONVENTIONS.md#6-폴더-구조).
 
 ## 브랜치 전략
 

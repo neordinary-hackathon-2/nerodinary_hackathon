@@ -1,17 +1,22 @@
-import {NativeTabs} from 'expo-router/native-tabs';
+import {useMemo} from 'react';
 import {useColorScheme} from 'react-native';
+import {NativeTabs} from 'expo-router/native-tabs';
 
 import {Colors} from '@/constants/theme';
 
-export default function AppTabs() {
+const AppTabs = () => {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  const labelStyle = useMemo(
+    () => ({selected: {color: colors.text}}),
+    [colors.text],
+  );
 
   return (
     <NativeTabs
       backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
-      labelStyle={{selected: {color: colors.text}}}
+      labelStyle={labelStyle}
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
@@ -30,4 +35,6 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
     </NativeTabs>
   );
-}
+};
+
+export default AppTabs;

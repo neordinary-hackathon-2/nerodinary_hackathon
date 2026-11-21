@@ -1,42 +1,64 @@
+import {useMemo} from 'react';
+import {Platform, Pressable, ScrollView, StyleSheet} from 'react-native';
+
 import {Image} from 'expo-image';
 import {SymbolView} from 'expo-symbols';
-import {Platform, Pressable, ScrollView, StyleSheet} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {ExternalLink} from '@/components/external-link';
-import {ThemedText} from '@/components/themed-text';
-import {ThemedView} from '@/components/themed-view';
-import {Collapsible} from '@/components/ui/collapsible';
-import {WebBadge} from '@/components/web-badge';
+import ExternalLink from '@/components/ExternalLink';
+import ThemedText from '@/components/ThemedText';
+import ThemedView from '@/components/ThemedView';
+import Collapsible from '@/components/ui/Collapsible';
+import WebBadge from '@/components/WebBadge';
 import {BottomTabInset, MaxContentWidth, Spacing} from '@/constants/theme';
-import {useTheme} from '@/hooks/use-theme';
+import useTheme from '@/hooks/useTheme';
 
-export default function ExploreScreen() {
+const LINK_ICON_NAME = {
+  ios: 'arrow.up.right.square',
+  android: 'link',
+  web: 'link',
+} as const;
+
+const ExploreScreen = () => {
   const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+  const insets = useMemo(
+    () => ({
+      ...safeAreaInsets,
+      bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+    }),
+    [safeAreaInsets],
+  );
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  const scrollViewStyle = useMemo(
+    () => [styles.scrollView, {backgroundColor: theme.background}],
+    [theme.background],
+  );
+
+  const contentContainerStyle = useMemo(
+    () => [
+      styles.contentContainer,
+      Platform.select({
+        android: {
+          paddingTop: insets.top,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+          paddingBottom: insets.bottom,
+        },
+        web: {
+          paddingTop: Spacing.six,
+          paddingBottom: Spacing.four,
+        },
+      }),
+    ],
+    [insets],
+  );
 
   return (
     <ScrollView
-      style={[styles.scrollView, {backgroundColor: theme.background}]}
+      style={scrollViewStyle}
       contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      contentContainerStyle={contentContainerStyle}
     >
       <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
@@ -51,11 +73,7 @@ export default function ExploreScreen() {
                 <ThemedText type="link">Expo documentation</ThemedText>
                 <SymbolView
                   tintColor={theme.text}
-                  name={{
-                    ios: 'arrow.up.right.square',
-                    android: 'link',
-                    web: 'link',
-                  }}
+                  name={LINK_ICON_NAME}
                   size={12}
                 />
               </ThemedView>
@@ -130,7 +148,7 @@ export default function ExploreScreen() {
             <ThemedText type="small">
               This template includes an example of an animated component. The{' '}
               <ThemedText type="code">
-                src/components/ui/collapsible.tsx
+                src/components/ui/Collapsible.tsx
               </ThemedText>{' '}
               component uses the powerful{' '}
               <ThemedText type="code">react-native-reanimated</ThemedText>{' '}
@@ -142,7 +160,7 @@ export default function ExploreScreen() {
       </ThemedView>
     </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -197,3 +215,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 });
+
+export default ExploreScreen;

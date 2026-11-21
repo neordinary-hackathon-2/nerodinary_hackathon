@@ -1,1 +1,1 @@
-export {default} from '@/screens/explore-screen';
+export {default} from '@/screens/ExploreScreen';

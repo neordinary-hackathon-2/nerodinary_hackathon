@@ -1,9 +1,10 @@
+import {useMemo} from 'react';
 import {Platform, StyleSheet, Text, type TextProps} from 'react-native';
 
-import {Fonts, ThemeColor} from '@/constants/theme';
-import {useTheme} from '@/hooks/use-theme';
+import {Fonts, type ThemeColor} from '@/constants/theme';
+import useTheme from '@/hooks/useTheme';
 
-export type ThemedTextProps = TextProps & {
+interface ThemedTextProps extends TextProps {
   type?:
     | 'default'
     | 'title'
@@ -14,23 +15,23 @@ export type ThemedTextProps = TextProps & {
     | 'linkPrimary'
     | 'code';
   themeColor?: ThemeColor;
-};
+}
 
-export function ThemedText({
+const ThemedText = ({
   style,
   type = 'default',
   themeColor,
   ...rest
-}: ThemedTextProps) {
+}: ThemedTextProps) => {
   const theme = useTheme();
-
-  return (
-    <Text
-      style={[{color: theme[themeColor ?? 'text']}, styles[type], style]}
-      {...rest}
-    />
+  const color = theme[themeColor ?? 'text'];
+  const textStyle = useMemo(
+    () => [{color}, styles[type], style],
+    [color, type, style],
   );
-}
+
+  return <Text style={textStyle} {...rest} />;
+};
 
 const styles = StyleSheet.create({
   small: {
@@ -73,3 +74,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+
+export default ThemedText;
