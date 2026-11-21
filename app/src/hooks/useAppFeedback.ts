@@ -10,6 +10,10 @@ const TAP_SOUND = require('@/assets/sounds/tap.wav');
 const POWER_ON_SOUND = require('@/assets/sounds/power-on.wav');
 const POWER_OFF_SOUND = require('@/assets/sounds/power-off.wav');
 
+// Android TOGGLE_ON·TOGGLE_OFF 햅틱은 API 34(Android 14)부터 있다. 그 아래에서는 expo-haptics가 예외를 던져 진동이 나지 않으므로 LONG_PRESS로 대신한다.
+const isToggleHapticSupported =
+  Platform.OS === 'android' && Number(Platform.Version) >= 34;
+
 // iOS는 Taptic Engine 강도, Android는 시스템 햅틱 상수(VIBRATE 권한 없이 동작)를 쓴다.
 const HAPTICS: Record<
   AppFeedback,
@@ -21,11 +25,15 @@ const HAPTICS: Record<
   },
   powerOn: {
     ios: Haptics.ImpactFeedbackStyle.Medium,
-    android: Haptics.AndroidHaptics.Toggle_On,
+    android: isToggleHapticSupported
+      ? Haptics.AndroidHaptics.Toggle_On
+      : Haptics.AndroidHaptics.Long_Press,
   },
   powerOff: {
     ios: Haptics.ImpactFeedbackStyle.Medium,
-    android: Haptics.AndroidHaptics.Toggle_Off,
+    android: isToggleHapticSupported
+      ? Haptics.AndroidHaptics.Toggle_Off
+      : Haptics.AndroidHaptics.Long_Press,
   },
 };
 
