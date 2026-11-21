@@ -30,6 +30,11 @@
   --color-text-on-inverse: var(--color-cream-100);
   --color-border-strong: var(--color-ink-900);
   --color-shadow-hard: var(--color-ink-900);
+  --color-status-on-air: #d6401f;
+
+  --shadow-hard: 2px 2px 0 var(--color-shadow-hard);
+
+  --container-mobile: 390px;
 }
 
 :root {
