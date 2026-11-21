@@ -10,6 +10,7 @@ import {
 import type {TvScreen} from '@/constants/tv';
 import useRandomVideos from '@/hooks/useRandomVideos';
 import {isInApp, postToApp} from '@/utils/appBridge';
+import {isIOS} from '@/utils/device';
 
 type TvVideo = RandomChannelVideosDto['videos'][number];
 
@@ -52,7 +53,8 @@ const getTvView = ({
  * - 전원: 켜면 채널 목록·영상을 불러와 1번 채널부터, 다시 누르면 꺼짐
  * - 채널 ▲▼: 1~9번 순환 (0번 컬러바는 숫자 키 0으로만 간다)
  * - 채널별 영상: 처음 들어갈 때 랜덤으로 정하고 접속 동안 유지. 새로고침은 지금 채널 영상만 바꾼다
- * - 볼륨: 웹은 유튜브 플레이어 볼륨, 앱 안에서는 앱에 시스템 볼륨 조절을 요청한다
+ * - 볼륨: 웹은 유튜브 플레이어 볼륨, 앱 안에서는 앱에 시스템 볼륨 조절을 요청한다.
+ *   iOS 웹은 코드로 음량을 바꿀 수 없어 기기 버튼을 쓰라는 안내를 띄운다
  */
 const useTvRemote = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
@@ -67,6 +69,7 @@ const useTvRemote = () => {
   >({});
   const [volume, setVolume] = useState(1);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isVolumeNoticeOpen, setIsVolumeNoticeOpen] = useState(false);
 
   const {channels, isPending, isError, refetch} = useRandomVideos(isPowerOn);
 
@@ -110,6 +113,7 @@ const useTvRemote = () => {
     if (isPowerOn) {
       setIsPowerOn(false);
       setIsGuideOpen(false);
+      setIsVolumeNoticeOpen(false);
       postToApp({type: 'feedback', feedback: 'powerOff'});
       return;
     }
@@ -172,6 +176,11 @@ const useTvRemote = () => {
       postToApp({type: 'volume', direction});
       return;
     }
+    // iOS 웹은 YouTube 플레이어 음량을 코드로 바꿀 수 없어(Safari 정책) 기기 버튼 안내를 띄운다.
+    if (isIOS()) {
+      setIsVolumeNoticeOpen(true);
+      return;
+    }
     const delta = direction === 'up' ? VOLUME_STEP : -VOLUME_STEP;
     // 0.1씩 더하면 부동소수점 오차가 쌓이므로 소수 첫째 자리로 맞춘다.
     setVolume((prev) =>
@@ -196,6 +205,10 @@ const useTvRemote = () => {
     setIsGuideOpen(false);
   };
 
+  const closeVolumeNotice = () => {
+    setIsVolumeNoticeOpen(false);
+  };
+
   return {
     isPowerOn,
     isOnboarding: !hasPoweredOn,
@@ -204,6 +217,7 @@ const useTvRemote = () => {
     video,
     volume,
     isGuideOpen,
+    isVolumeNoticeOpen,
     togglePower,
     goToNextChannel: () => moveChannel(1),
     goToPreviousChannel: () => moveChannel(-1),
@@ -214,6 +228,7 @@ const useTvRemote = () => {
     skipFailedVideo,
     openGuide,
     closeGuide,
+    closeVolumeNotice,
   };
 };
 
