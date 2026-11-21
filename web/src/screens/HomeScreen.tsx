@@ -1,9 +1,11 @@
 'use client';
 
+import ChannelGuide from '@/components/ChannelGuide';
 import Header from '@/components/Header';
 import PixelTv from '@/components/PixelTv';
 import Remote from '@/components/Remote';
 import TvPlayer from '@/components/TvPlayer';
+import useChannels from '@/hooks/useChannels';
 import useTvRemote from '@/hooks/useTvRemote';
 
 const HomeScreen = () => {
@@ -13,6 +15,7 @@ const HomeScreen = () => {
     channelLabel,
     video,
     volume,
+    isGuideOpen,
     togglePower,
     goToNextChannel,
     goToPreviousChannel,
@@ -21,7 +24,10 @@ const HomeScreen = () => {
     volumeUp,
     volumeDown,
     skipFailedVideo,
+    openGuide,
+    closeGuide,
   } = useTvRemote();
+  const guide = useChannels(isGuideOpen);
 
   const remote = (
     <Remote
@@ -33,12 +39,13 @@ const HomeScreen = () => {
       onClickChannelUp={goToNextChannel}
       onClickChannelDown={goToPreviousChannel}
       onClickRefresh={refreshVideo}
+      onClickGuide={openGuide}
       onClickNumber={goToChannel}
     />
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-mobile flex-col bg-bg-app">
       <Header isLive={screen === 'live'} />
       <div className="mt-6 px-5">
         <PixelTv screen={screen} channelLabel={channelLabel}>
@@ -69,6 +76,26 @@ const HomeScreen = () => {
             <span className="h-1 w-2 bg-text-muted" />
           </div>
           <div className="mt-[9px] ml-[60px]">{remote}</div>
+        </div>
+      )}
+      {isGuideOpen && (
+        // Figma Channel Guide: 어두운 배경 위 편성표 카드. 카드 밖을 눌러도 닫힌다.
+        // z-10: TV 화면(유튜브 iframe)보다 위에 그려야 영상까지 어둡게 덮인다.
+        <div className="absolute inset-0 z-10 flex justify-center bg-black/60 pt-[222px] backdrop-blur-[2px]">
+          <button
+            type="button"
+            aria-label="편성표 닫기"
+            className="absolute inset-0 cursor-default"
+            onClick={closeGuide}
+          />
+          <div className="relative h-fit">
+            <ChannelGuide
+              channels={guide.channels}
+              isPending={guide.isPending}
+              isError={guide.isError}
+              onClose={closeGuide}
+            />
+          </div>
         </div>
       )}
     </main>

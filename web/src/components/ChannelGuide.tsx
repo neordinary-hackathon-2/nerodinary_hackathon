@@ -1,21 +1,36 @@
-interface ChannelGuideItem {
-  number: number;
-  name: string;
-}
+import type {ChannelListItemDto} from '@shared';
 
 interface ChannelGuideProps {
-  channels: ChannelGuideItem[];
+  channels: ChannelListItemDto[] | undefined;
+  isPending: boolean;
+  isError: boolean;
+  onClose: () => void;
 }
 
-const ChannelGuide = ({channels}: ChannelGuideProps) => {
+const ChannelGuide = ({
+  channels,
+  isPending,
+  isError,
+  onClose,
+}: ChannelGuideProps) => {
+  const statusMessage = isError
+    ? '편성표를 불러오지 못했어요.'
+    : isPending
+      ? '편성표를 불러오는 중이에요.'
+      : null;
+
   return (
-    <section className="relative flex h-[488px] w-[322px] shrink-0 flex-col items-center justify-center gap-[18px] bg-[url(/channel-guide/frame.svg)] bg-no-repeat px-6 py-8">
+    <section
+      aria-label="밥송국 채널 편성표"
+      className="relative flex h-[488px] w-[322px] shrink-0 flex-col items-center justify-center gap-[18px] bg-[url(/channel-guide/frame.svg)] bg-no-repeat px-6 py-8"
+    >
       <h2 className="w-full text-center text-[20px] leading-[1.2] font-bold text-text-muted">
         밥송국 채널 편성표
       </h2>
       <button
         type="button"
         aria-label="닫기"
+        onClick={onClose}
         className="absolute top-[37px] left-[282px] size-4 bg-[url(/icons/close.svg)] bg-no-repeat"
       />
       <div className="w-full">
@@ -23,21 +38,27 @@ const ChannelGuide = ({channels}: ChannelGuideProps) => {
           <span className="w-[88px]">채널</span>
           <span>카테고리</span>
         </div>
-        <ul>
-          {channels.map((channel) => (
-            <li
-              key={channel.number}
-              className="flex h-8 items-center border-b border-border-subtle px-4 leading-normal last:border-b-0"
-            >
-              <span className="w-[88px] font-silkscreen text-[12px] font-bold text-text-muted">
-                CH {channel.number}
-              </span>
-              <span className="text-[14px] font-semibold text-text-soft">
-                {channel.name}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {statusMessage ? (
+          <p className="flex h-8 items-center px-4 text-[14px] leading-normal font-semibold text-text-soft">
+            {statusMessage}
+          </p>
+        ) : (
+          <ul>
+            {channels?.map((channel) => (
+              <li
+                key={channel.channelNumber}
+                className="flex h-8 items-center border-b border-border-subtle px-4 leading-normal last:border-b-0"
+              >
+                <span className="w-[88px] font-silkscreen text-[12px] font-bold text-text-muted">
+                  CH {channel.channelNumber}
+                </span>
+                <span className="text-[14px] font-semibold text-text-soft">
+                  {channel.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <p className="w-full text-center text-[12px] leading-[1.2] font-semibold text-olive-500">
         채널 키 또는 숫자 키(0~9)로 이동할 수 있어요.

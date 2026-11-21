@@ -64,6 +64,7 @@ const useTvRemote = () => {
     Record<number, string[]>
   >({});
   const [volume, setVolume] = useState(1);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const {channels, isPending, isError, refetch} = useRandomVideos(isPowerOn);
 
@@ -106,6 +107,7 @@ const useTvRemote = () => {
   const togglePower = () => {
     if (isPowerOn) {
       setIsPowerOn(false);
+      setIsGuideOpen(false);
       postToApp({type: 'feedback', feedback: 'powerOff'});
       return;
     }
@@ -181,12 +183,23 @@ const useTvRemote = () => {
     }));
   };
 
+  const openGuide = () => {
+    postToApp({type: 'feedback', feedback: 'tap'});
+    setIsGuideOpen(true);
+  };
+
+  const closeGuide = () => {
+    postToApp({type: 'feedback', feedback: 'tap'});
+    setIsGuideOpen(false);
+  };
+
   return {
     isPowerOn,
     screen,
     channelLabel,
     video,
     volume,
+    isGuideOpen,
     togglePower,
     goToNextChannel: () => moveChannel(1),
     goToPreviousChannel: () => moveChannel(-1),
@@ -195,6 +208,8 @@ const useTvRemote = () => {
     volumeUp: () => changeVolume('up'),
     volumeDown: () => changeVolume('down'),
     skipFailedVideo,
+    openGuide,
+    closeGuide,
   };
 };
 
