@@ -1,7 +1,8 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiResponse as SwaggerResponse } from '@nestjs/swagger';
 import { z } from 'zod';
-import { ErrorCode } from '../exception/error-code.js';
+import { ErrorCodes } from '../exception/error-code.js';
+import type { ErrorCode } from '../exception/error-code.js';
 
 interface SuccessOptions {
   status?: HttpStatus.OK | HttpStatus.CREATED;
@@ -49,6 +50,16 @@ export function ApiFailure(...errorCodes: ErrorCode[]) {
         description: codes.map((c) => c.message).join(' / '),
         content: {
           'application/json': {
+            schema: {
+              type: 'object',
+              required: ['isSuccess', 'code', 'message', 'result'],
+              properties: {
+                isSuccess: { type: 'boolean', enum: [false], example: false },
+                code: { type: 'string', example: codes[0].code },
+                message: { type: 'string', example: codes[0].message },
+                result: errorResultSchema(codes),
+              },
+            },
             examples: Object.fromEntries(
               codes.map((c) => [
                 c.code,
@@ -57,7 +68,7 @@ export function ApiFailure(...errorCodes: ErrorCode[]) {
                     isSuccess: false,
                     code: c.code,
                     message: c.message,
-                    result: null,
+                    result: errorResultExample(c),
                   },
                 },
               ]),
@@ -67,4 +78,49 @@ export function ApiFailure(...errorCodes: ErrorCode[]) {
       }),
     ),
   );
+}
+
+function errorResultSchema(errorCodes: ErrorCode[]) {
+  const validationResult = {
+    type: 'array',
+    items: {
+      type: 'object',
+      required: ['field', 'reasons'],
+      properties: {
+        field: { type: 'string', example: 'channelNumber' },
+        reasons: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Invalid input'],
+        },
+      },
+    },
+  };
+
+  const hasValidationError = errorCodes.some(
+    (error) => error.code === ErrorCodes.VALIDATION_FAILED.code,
+  );
+  const hasNullResultError = errorCodes.some(
+    (error) => error.code !== ErrorCodes.VALIDATION_FAILED.code,
+  );
+
+  if (hasValidationError && hasNullResultError) {
+    return {
+      oneOf: [
+        validationResult,
+        { type: 'object', nullable: true, example: null },
+      ],
+    };
+  }
+  if (hasValidationError) {
+    return validationResult;
+  }
+
+  return { nullable: true, example: null };
+}
+
+function errorResultExample(errorCode: ErrorCode): unknown {
+  return errorCode.code === ErrorCodes.VALIDATION_FAILED.code
+    ? [{ field: 'channelNumber', reasons: ['Invalid input'] }]
+    : null;
 }

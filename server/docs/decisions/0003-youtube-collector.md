@@ -45,10 +45,10 @@ POST /api/internal/youtube/sync      (채널당 1회)
     videos: [{ youtubeVideoId, title, thumbnailUrl, durationSeconds, publishedAt,
                sourceYoutubeChannelId, sourceChannelTitle, privacyStatus, isEmbeddable }],
     removedVideoIds?: string[] }
-  → { acceptedCount, rejectedCount, rejected: [{ youtubeVideoId, reason }] }
+  → { acceptedCount, rejectedCount, rejected: [{ youtubeVideoId, reason }], evictedCount }
 ```
 
-- `videos`에는 새 영상과, 메타데이터를 갱신할 기존 영상이 함께 들어온다. 서버는 `youtubeVideoId` 기준으로 upsert하고 `lastRefreshedAt`을 갱신한다.
+- `videos`에는 새 영상과, 메타데이터를 갱신할 기존 영상이 함께 들어온다. 서버는 요청의 `channelNumber`로 채널을 찾아 `(appChannelId, youtubeVideoId)` 기준으로 upsert하고 `lastRefreshedAt`을 갱신한다.
 - 수집기는 공개·임베드 가능·썸네일이 있는 영상만 보낸다. 서버는 길이·공개·임베드 조건을 다시 확인하고, 제외한 영상을 `rejected`로 돌려준다. 수집기는 이를 로그와 요약에 남긴다.
 - 같은 영상이 여러 채널에 들어갈 수 있다. 한 채널 안에서만 중복을 막는다.
 
@@ -59,7 +59,7 @@ POST /api/internal/youtube/sync      (채널당 1회)
 | 결정 | 내용 | 결정자 |
 | --- | --- | --- |
 | Swagger 노출 | 내부 API도 문서에 보인다. 토큰이 없으면 401 | sychoi |
-| 채널 간 중복 | 같은 영상을 여러 채널에 편성할 수 있다. 테이블은 나누지 않고 고유 제약을 `youtube_video_id` 단독에서 `(app_channel_id, youtube_video_id)` 복합으로 바꿨다(galllee, PR #25). `sync` 서비스는 제약에 기대지 않고 "있으면 갱신, 없으면 추가"로 처리하며, 복합 제약은 동시 실행 같은 예외 상황의 안전망이다. 수집기도 채널별로만 중복을 막는다 | sychoi, galllee (11.22 합의) |
+| 채널 간 중복 | 같은 영상을 여러 채널에 편성할 수 있다. 테이블을 나누지 않고 `(app_channel_id, youtube_video_id)` 복합 고유 제약으로 한 채널 안에서만 중복을 막는다. 동시 삽입 경합은 서비스의 원자적 upsert로 처리한다 | sychoi, galllee (11.22 합의) |
 | `SEED_TOKEN` | 서버 필수 환경변수(16자 이상). 없으면 부팅에 실패한다. 운영에서는 GitHub Secret `SEED_TOKEN`을 배포가 `.env.production`에 넣는다([0004](0004-production-env-from-github-secrets.md)) | sychoi |
 | 채널 초기 데이터 | 마이그레이션이 아니라 SQL을 DB에 한 번 실행해 넣는다. 초기 마이그레이션(`0000`)이 0~9번 채널을 함께 넣는다(galllee, PR #25). 0번 컬러바는 검색어가 없어 수집하지 않는다 | sychoi |
 
@@ -71,13 +71,13 @@ POST /api/internal/youtube/sync      (채널당 1회)
 4. `removedVideoIds`는 요청한 채널의 행만 지운다. 같은 영상이 다른 채널에 있어도 건드리지 않는다.
 5. 3~4는 한 트랜잭션이다.
 
-`storedVideoIds`와 `removedVideoIds`는 처음 계약(PR #17)에 없던 선택 필드다. `sync`의 `videos`는 삭제만 있는 요청을 받도록 최소 1개 제약을 뺐다. 수집기는 요청 본문이 커지지 않게 영상을 50개씩 나눠 보낸다.
+`storedVideoIds`와 `removedVideoIds`는 처음 계약(PR #17)에 없던 필드다. `seed-config`는 각 채널의 `storedVideoIds`를 반환하고, `sync`는 필수 `videos` 배열에 빈 배열을 허용해 삭제만 있는 요청도 받는다. 수집기는 요청 본문이 커지지 않게 영상을 50개씩 나눠 보낸다. `sync`는 HTTP 200을 반환하고, `evictedCount`로 유지 개수를 넘겨 서버가 제거한 수를 알린다.
 
 로컬 MySQL 9.3에서 고유 제약을 없앤 상태로 확인한 것: 같은 영상 재전송 시 행이 늘지 않고 제목만 갱신, 같은 요청 3회 반복 후에도 행 수 그대로, 같은 영상의 두 채널 저장, 채널 범위 삭제, 한 요청 안의 같은 영상은 한 행. 실제 YouTube 키로 수집기를 연결한 확인(채널 1, 검색 3회로 100개 저장, 재실행 시 검색 0회)은 저장 로직을 바꾸기 전 코드로 했다.
 
 복합 고유 제약은 main 에 들어가 있고 운영 DB에도 적용되어 있다(2026-11-22 운영 DB 초기화 후 재적용).
 
-**알려진 한계**: 수집기가 같은 채널에 대해 동시에 두 번 실행되면 두 번째 요청이 복합 고유 제약에 걸려 500이 될 수 있다(데이터는 깨지지 않는다). 워크플로는 `concurrency`로 동시 실행을 막는다.
+같은 새 영상의 동시 upsert는 `server/test/db-services.e2e-spec.ts`에서 MySQL에 두 요청을 병렬로 보내 한 행만 남고 유니크 위반이 나지 않는 것을 확인한다. 복합 고유 제약은 같은 채널 안의 중복을 막고, `ON DUPLICATE KEY UPDATE`가 중복 삽입 경합을 원자적으로 처리한다.
 
 ## 실패 시 동작
 
