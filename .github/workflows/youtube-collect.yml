@@ -23,8 +23,8 @@ on:
         required: false
   # 매일 한 번 실제 동기화로 실행한다. (20:17 UTC = 05:17 KST)
   # 정각(:00)은 GitHub 예약 실행이 몰려 지연·누락되기 쉬워 분을 비켜 둔다. (11.22 05:00 실행 누락)
-  schedule:
-    - cron: '17 20 * * *'
+  #schedule:
+  #  - cron: '17 20 * * *'
 
 permissions:
   contents: read
